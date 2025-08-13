@@ -19,6 +19,8 @@ const config: ForgeConfig = {
     name: 'Morpheus',
     extraResource: ['./executables/'],
     icon: 'src/frontend/assets/images/circle-mor-logo',
+    // Universal binary support for both Intel and Apple Silicon
+    arch: 'universal',
     osxSign: {
       identity: process.env.APPLE_DEVELOPER_ID,
       optionsForFile: () => {
@@ -98,6 +100,8 @@ const config: ForgeConfig = {
         name: 'Lite-Client',
       },
       draft: true,
+      prerelease: process.env.IS_PRERELEASE === 'true',
+      generateReleaseNotes: true,
     }),
   ],
   plugins: [
@@ -105,7 +109,7 @@ const config: ForgeConfig = {
     new WebpackPlugin({
       mainConfig: process.env.NODE_ENV === 'development' ? mainDevConfig : mainConfig,
       devContentSecurityPolicy:
-        "connect-src 'self' unsafe-inline ws://localhost:* https://metamask-sdk-socket.metafi.codefi.network wss://metamask-sdk-socket.metafi.codefi.network data:",
+        "connect-src 'self' unsafe-inline ws://localhost:* https://metamask-sdk-socket.metafi.codefi.network wss://metamask-sdk-socket.metafi.codefi.network https://ollamadb.dev https://api.mor.org data:",
       renderer: {
         config: rendererConfig,
         entryPoints: [

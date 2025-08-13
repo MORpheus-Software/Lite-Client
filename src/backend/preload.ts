@@ -34,17 +34,11 @@ contextBridge.exposeInMainWorld('backendBridge', {
     getAllModels: () => invokeNoParam<ListResponse>(OllamaChannel.OllamaGetAllModels),
     getModel: (model: string) =>
       invoke<string[], ModelResponse>(OllamaChannel.OllamaGetModel, model),
-    getAvailableModelsFromRegistry: (
-      offset = 0,
-      limit = 20,
-      searchQuery?: string,
-      sortBy?: string,
-      sortOrder?: string,
-    ) =>
+    getAvailableModelsFromRegistry: (searchQuery?: string, sortBy?: string, sortOrder?: string) =>
       ipcRenderer.invoke(
         OllamaChannel.OllamaGetAvailableModelsFromRegistry,
-        offset,
-        limit,
+        0, // offset - always 0, no pagination
+        20, // limit - not used anymore, backend uses 500
         searchQuery,
         sortBy,
         sortOrder,
