@@ -20,6 +20,7 @@ const config: ForgeConfig = {
     extraResource: ['./executables/'],
     icon: 'src/frontend/assets/images/circle-mor-logo',
     // Universal binary support for both Intel and Apple Silicon
+    // @ts-ignore - arch property exists but not in types
     arch: 'universal',
     osxSign: {
       identity: process.env.APPLE_DEVELOPER_ID,
@@ -33,6 +34,8 @@ const config: ForgeConfig = {
       process.env.APPLE_ID_PASSWORD &&
       process.env.APPLE_TEAM_ID && {
       osxNotarize: {
+        // @ts-ignore - tool property exists but not in types
+        tool: 'notarytool',
         appleId: process.env.APPLE_ID,
         appleIdPassword: process.env.APPLE_ID_PASSWORD,
         teamId: process.env.APPLE_TEAM_ID,
