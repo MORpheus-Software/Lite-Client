@@ -32,84 +32,43 @@ export default () => {
   } = useChatContext();
 
   useEffect(() => {
-    const loadCurrentModel = async () => {
-      try {
-        // First try to get the "current" model (loaded model)
-        const currentModel = await window.backendBridge.ollama.getCurrentModel();
-        console.log('Current model:', currentModel);
-
-        if (currentModel?.name) {
-          setCurrentModel(currentModel.name);
-        } else {
-          // If no current model, check for last used model first
-          let preferredModel = 'orca-mini:latest';
-          try {
-            const lastUsedModel = await window.backendBridge.ollama.getLastUsedLocalModel();
-            if (lastUsedModel) {
-              preferredModel = lastUsedModel;
-            }
-          } catch (error) {
-            console.warn('Could not get last used model, using default:', error);
-          }
-
-          const allModels = await window.backendBridge.ollama.getAllModels();
-          console.log('All available models:', allModels);
-
-          if (allModels?.models && allModels.models.length > 0) {
-            const preferredModelObj = allModels.models.find((m) => m.name === preferredModel);
-
-            if (preferredModelObj) {
-              // Preferred model is available, use it
-              setCurrentModel(`${preferredModel} (preferred)`);
-            } else if (preferredModel !== 'orca-mini:latest') {
-              // Preferred model not available, try orca-mini:latest
-              const orcaMini = allModels.models.find((m) => m.name === 'orca-mini:latest');
-              if (orcaMini) {
-                setCurrentModel('orca-mini:latest (default)');
-              } else {
-                // Neither preferred nor orca-mini available, download orca-mini
-                console.log('orca-mini:latest not found, downloading...');
-                setCurrentModel('Downloading orca-mini:latest...');
-
-                try {
-                  await window.backendBridge.ollama.getModel('orca-mini:latest');
-                  setCurrentModel('orca-mini:latest (default)');
-                  console.log('orca-mini:latest downloaded successfully');
-                } catch (downloadError) {
-                  console.error('Failed to download orca-mini:latest:', downloadError);
-                  // Fallback to first available model
-                  const fallbackModel = allModels.models[0];
-                  setCurrentModel(`${fallbackModel.name} (fallback)`);
-                }
-              }
-            } else {
-              // orca-mini:latest not available, download it
-              console.log('orca-mini:latest not found, downloading...');
-              setCurrentModel('Downloading orca-mini:latest...');
-
-              try {
-                await window.backendBridge.ollama.getModel('orca-mini:latest');
-                setCurrentModel('orca-mini:latest (default)');
-                console.log('orca-mini:latest downloaded successfully');
-              } catch (downloadError) {
-                console.error('Failed to download orca-mini:latest:', downloadError);
-                // Fallback to first available model
-                const fallbackModel = allModels.models[0];
-                setCurrentModel(`${fallbackModel.name} (fallback)`);
-              }
-            }
-          } else {
-            setCurrentModel(null);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load current model:', error);
-        setCurrentModel(null);
-      }
-    };
-
     loadCurrentModel();
-  }, []);
+  }, []); // Initial load
+
+  // Update model when current chat changes
+  useEffect(() => {
+    if (currentChat) {
+      loadCurrentModel();
+    }
+  }, [currentChat]);
+
+  const loadCurrentModel = async () => {
+    try {
+      // First try to get the "current" model (actually loaded model)
+      const currentModel = await window.backendBridge.ollama.getCurrentModel();
+      console.log('Current model:', currentModel);
+
+      if (currentModel?.name) {
+        setCurrentModel(currentModel.name);
+      } else {
+        // If no current model, show the last used model or default
+        try {
+          const lastUsedModel = await window.backendBridge.ollama.getLastUsedLocalModel();
+          if (lastUsedModel) {
+            setCurrentModel(`${lastUsedModel} (ready)`);
+          } else {
+            setCurrentModel('orca-mini:latest (ready)');
+          }
+        } catch (error) {
+          console.warn('Could not get last used model:', error);
+          setCurrentModel('orca-mini:latest (ready)');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load current model:', error);
+      setCurrentModel('Model unavailable');
+    }
+  };
 
   const handleNewChat = () => {
     // The new chat creation will be handled by the ChatList component
