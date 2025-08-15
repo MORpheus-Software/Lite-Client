@@ -256,10 +256,10 @@ export const installModelWithStatus = async (model: string) => {
       if (part.completed && part.total) {
         percent = Math.round((part.completed / part.total) * 100);
 
-        await sendOllamaStatusToRenderer(`${part.status} ${percent}%`);
+        await sendOllamaStatusToRenderer(`[${model}] ${part.status} ${percent}%`);
       }
     } else {
-      await sendOllamaStatusToRenderer(`${part.status}`);
+      await sendOllamaStatusToRenderer(`[${model}] ${part.status}`);
     }
   }
 };
