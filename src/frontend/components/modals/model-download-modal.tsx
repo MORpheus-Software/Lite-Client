@@ -54,7 +54,6 @@ const ModelDownloadModal: React.FC<ModelDownloadModalProps> = ({
           <Modal.StatusSection>
             {isComplete ? (
               <Modal.SuccessMessage>
-                <Modal.SuccessIcon>✅</Modal.SuccessIcon>
                 <Modal.SuccessText>Download Complete!</Modal.SuccessText>
               </Modal.SuccessMessage>
             ) : error ? (
@@ -88,6 +87,7 @@ const Modal = {
     border-radius: 12px;
     width: 90%;
     max-width: 500px;
+    min-width: 450px;
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     display: flex;
     flex-direction: column;
@@ -101,6 +101,9 @@ const Modal = {
     align-items: center;
     padding: 20px 24px 16px 24px;
     border-bottom: 1px solid ${(props) => props.theme.colors.hunter};
+    min-height: 70px;
+    max-height: 70px;
+    overflow: hidden;
   `,
 
   Title: Styled.h2`
@@ -109,6 +112,9 @@ const Modal = {
     color: ${(props) => props.theme.colors.emerald};
     font-family: ${(props) => props.theme.fonts.family.primary.bold};
     margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   `,
 
   CloseButton: Styled.button`
@@ -132,15 +138,22 @@ const Modal = {
     padding: 24px;
     flex: 1;
     overflow-y: auto;
+    min-height: 200px;
+    max-height: 200px;
+    overflow: hidden;
   `,
 
   ModelName: Styled.h3`
     font-size: 18px;
     font-weight: 500;
     color: ${(props) => props.theme.colors.balance};
-    font-family: ${(props) => props.theme.fonts.family.primary.regular};
+    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
     margin: 0 0 24px 0;
     text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 400px;
   `,
 
   ProgressSection: Styled.div`
@@ -149,6 +162,9 @@ const Modal = {
     display: flex;
     flex-direction: column;
     align-items: center;
+    min-height: 40px;
+    max-height: 40px;
+    overflow: hidden;
   `,
 
   ProgressBar: Styled.div`
@@ -172,7 +188,10 @@ const Modal = {
     font-size: 16px;
     font-weight: 600;
     color: ${(props) => props.theme.colors.balance};
-    font-family: ${(props) => props.theme.fonts.family.primary.regular};
+    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+    min-width: 60px;
+    text-align: center;
+    display: inline-block;
   `,
 
   StatusSection: Styled.div`
@@ -182,7 +201,9 @@ const Modal = {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 40px;
+    min-height: 60px;
+    max-height: 60px;
+    overflow: hidden;
   `,
 
   StatusText: Styled.div`
@@ -192,7 +213,9 @@ const Modal = {
     font-weight: 500;
     text-align: center;
     max-width: 400px;
-    word-wrap: break-word;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   `,
 
   SuccessMessage: Styled.div`
@@ -200,14 +223,13 @@ const Modal = {
     align-items: center;
     justify-content: center;
     color: ${(props) => props.theme.colors.emerald};
-    font-family: ${(props) => props.theme.fonts.family.primary.bold};
+    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
     font-size: 18px;
     font-weight: 700;
-  `,
-
-  SuccessIcon: Styled.span`
-    font-size: 24px;
-    margin-right: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 400px;
   `,
 
   SuccessText: Styled.span`
@@ -223,7 +245,12 @@ const Modal = {
     font-size: 14px;
     font-weight: 500;
     text-align: center;
-    font-family: ${(props) => props.theme.fonts.family.primary.regular};
+    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 400px;
+    margin: 0 auto;
   `,
 
   Footer: Styled.div`
@@ -232,6 +259,9 @@ const Modal = {
     gap: 12px;
     padding: 16px 24px 20px 24px;
     border-top: 1px solid ${(props) => props.theme.colors.hunter};
+    min-height: 72px;
+    max-height: 72px;
+    overflow: hidden;
   `,
 
   Button: Styled.button<{ $variant: 'primary' | 'secondary' }>`
@@ -239,11 +269,14 @@ const Modal = {
     border-radius: 6px;
     font-size: 14px;
     font-weight: 500;
-    font-family: ${(props) => props.theme.fonts.family.primary.regular};
+    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
     cursor: pointer;
     transition: all 0.2s ease;
     border: none;
-    min-width: 100px;
+    min-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 
     ${(props) =>
       props.$variant === 'primary'
