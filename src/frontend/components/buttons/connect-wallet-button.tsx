@@ -17,7 +17,7 @@ type BadgeProps = {
 };
 
 export default forwardRef<HTMLDivElement>((props: Props, ref) => {
-  const { connected, connecting, onClick } = props;
+  const { connected, onClick } = props;
 
   return (
     <ConnectWalletButton.Wrapper onClick={onClick} ref={ref}>

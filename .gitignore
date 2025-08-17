@@ -96,4 +96,10 @@ out/
 blobs/
 manifests/
 
+# Sync scripts (local utilities)
+sync-agent-config.sh
+
+# Personal AI agent configuration (keep private)
+.cursor-agent-personal.md
+
 package-lock.json

@@ -1,17 +1,22 @@
 {
   "name": "morpheus",
   "productName": "Morpheus",
-  "version": "0.0.6",
+  "version": "0.7.4-daily.7",
   "description": "Morpheus is private, sovereign, AI",
   "main": ".webpack/main",
   "scripts": {
+    "_comment": "GITHUB RELEASES: Use ./release-github.sh script with existing signed artifacts (never rebuild)",
+    "preinstall": "node .setup/yarn-preinstall-system-validation.mjs",
     "start": "cross-env NODE_ENV=development DEBUG=electron-packager electron-forge start",
     "package": "set DEBUG=electron-packager && electron-forge package",
     "make": "electron-forge make",
-    "publish": "electron-forge publish",
-    "publish-github-minor": "yarn version --minor && git push --follow-tags",
-    "publish-github-major": "yarn version --major && git push --follow-tags",
-    "publish-github-patch": "yarn version --patch && git push --follow-tags",
+    "_comment_build": "BUILD: Creates signed, notarized, and stapled artifacts (run once when code changes)",
+    "build": "yarn make",
+    "_comment_release": "GITHUB RELEASES: Use custom script that uploads existing artifacts without rebuilding",
+    "release:daily": "./release-github.sh daily",
+    "release:patch": "./release-github.sh patch",
+    "release:minor": "./release-github.sh minor",
+    "release:major": "./release-github.sh major",
     "lint": "eslint --ext .ts,.tsx .",
     "pretty": "npx prettier --no-error-on-unmatched-pattern src/**/*.{js,jsx,ts,tsx,json,css} --write",
     "prepare": "husky"
@@ -26,11 +31,6 @@
     "src/**/*.{js,jsx,ts,tsx,json,css}": [
       "prettier --write"
     ]
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "yarn run pretty"
-    }
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -83,20 +83,25 @@
     "@metamask/sdk": "^0.14.2",
     "@metamask/sdk-react": "^0.14.2",
     "@metamask/sdk-react-ui": "^0.14.3",
-    "axios": "^1.6.7",
+    "@types/react": "^19.1.9",
+    "axios": "^1.11.0",
     "check-disk-space": "^3.4.0",
     "electron-squirrel-startup": "^1.0.0",
     "electron-store": "^8.1.0",
     "ethers": "^6.11.1",
     "langchain": "^0.1.22",
     "llamaindex": "^0.1.17",
+    "lucide-react": "^0.536.0",
     "ollama": "^0.4.3",
     "qrcode": "^1.5.3",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
     "react-loader-spinner": "^6.1.6",
     "react-router-dom": "^6.21.3",
     "react-transition-group": "^4.4.5",
     "styled-components": "^6.1.8",
     "sudo-prompt": "^9.2.1",
     "winston": "^3.11.0"
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

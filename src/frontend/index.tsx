@@ -1,102 +1,94 @@
+// libs
 import React, { useEffect, useState } from 'react';
-import ReactDOM from 'react-dom';
 import { createRoot } from 'react-dom/client';
-import { MetaMaskProvider } from '@metamask/sdk-react';
 import { HashRouter } from 'react-router-dom';
 
-// custom components
-import { QrCodeModal } from './components/modals/qr-code-modal';
-import AppInit from './components/layout/app-init';
+// components
 import Main from './components/layout/main';
+import AppInit from './components/layout/app-init';
+// import ChooseDirectoryModalComponent from './components/modals/choose-directory-modal';
 
-// helpers
-import { updateQrCode } from './helpers';
-
-// theme
+// providers
 import ThemeProvider from './theme/theme-provider';
-import GlobalStyle from './theme/index';
-import './index.css';
+import { ChatProvider } from './contexts/chat-context';
+import { MetaMaskProvider } from '@metamask/sdk-react';
 
-// context
-import { AIMessagesProvider } from './contexts';
+// modals
+import { QrCodeModal } from './components/modals/qr-code-modal';
+
+// styles
+import GlobalStyle from './theme/index';
 
 // constants
 import { LOGO_METAMASK_BASE64 } from './constants';
+
+// utils
+import { updateQrCode } from './helpers';
+
+// events
+// import { IpcChannel } from '../events';
 
 // root
 const rootElement = document.querySelector('#root') as Element;
 const root = createRoot(rootElement);
 
 const AppRoot = () => {
-  const [isModelsPathSet, setIsModelPathSet] = useState(false);
-  const [modelsPathFetched, setIsModelPathFetched] = useState(false);
-  const [modelsPath, setModelsPath] = useState('');
   const [isInitialized, setIsInitialized] = useState(false);
-
-  // get the status of the saved folder
-  // useEffect(() => {
-  //   const getPath = async () => {
-  //     return await window.backendBridge.main.getFolderPath();
-  //   };
-
-  //   getPath()
-  //     .then((value) => {
-  //       setModelsPath(value);
-  //       setIsModelPathFetched(true);
-  //     })
-  //     .catch((err) => console.error(err));
-  // }, []);
-
-  // useEffect(() => {
-  //   if (modelsPath) {
-  //     setIsModelPathSet(true);
-
-  //     handleOllamaInit();
-  //   }
-  // }, [modelsPath]);
-
-  // useEffect(() => {
-  //   window.backendBridge.main.onInit((result: boolean) => setIsInitialized(result));
-
-  //   return () => {
-  //     window.backendBridge.removeAllListeners(IpcChannel.AppInit);
-  //   }
-  // });
 
   useEffect(() => {
     handleOllamaInit();
   }, []);
 
   const handleOllamaInit = async () => {
+    // Initialize inference manager first
+    try {
+      await window.backendBridge.inference.getMode(); // This will trigger initialization
+    } catch (error) {
+      console.warn('Failed to initialize inference manager:', error);
+    }
+
     const ollamaInit = await window.backendBridge.ollama.init();
 
     if (ollamaInit) {
-      const model = await window.backendBridge.ollama.getModel('llama2');
+      // Try to get the last used local model first, fallback to orca-mini:latest
+      let modelToInit = 'orca-mini:latest';
+      try {
+        const lastUsedModel = await window.backendBridge.ollama.getLastUsedLocalModel();
+        if (lastUsedModel && lastUsedModel !== 'orca-mini:latest') {
+          modelToInit = lastUsedModel;
+        }
+      } catch (error) {
+        console.warn('Could not get last used model, using default:', error);
+      }
+
+      const model = await window.backendBridge.ollama.getModel(modelToInit);
 
       if (model) {
         setIsInitialized(true);
 
         return;
       } else {
-        console.error(`Something went wrong with pulling model ${'llama2'}`);
+        console.error(`Something went wrong with pulling model ${modelToInit}`);
+
+        // If the stored model failed, try orca-mini:latest as fallback
+        if (modelToInit !== 'orca-mini:latest') {
+          console.log('Trying fallback model: orca-mini:latest');
+          const fallbackModel = await window.backendBridge.ollama.getModel('orca-mini:latest');
+          if (fallbackModel) {
+            setIsInitialized(true);
+            return;
+          }
+        }
       }
     }
 
     console.error(`Couldn't initialize Ollama correctly.`);
   };
 
-  const handleSelectFolderClicked = async () => {
-    const result = await window.backendBridge.main.setFolderPath();
-
-    if (result) {
-      window.backendBridge.main.sendInit();
-    }
-  };
-
   return (
     <React.StrictMode>
       <ThemeProvider>
-        <AIMessagesProvider>
+        <ChatProvider>
           <MetaMaskProvider
             debug={false}
             sdkOptions={{
@@ -156,14 +148,14 @@ const AppRoot = () => {
             {isInitialized && <Main />}
             {/* {modelsPathFetched && !isModelsPathSet && <ChooseDirectoryModalComponent onClick={async () => await handleSelectFolderClicked()} />} */}
           </MetaMaskProvider>
-        </AIMessagesProvider>
+        </ChatProvider>
       </ThemeProvider>
     </React.StrictMode>
   );
 };
 
 root.render(
-  <HashRouter>
+  <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
     <GlobalStyle />
     <AppRoot />
   </HashRouter>,

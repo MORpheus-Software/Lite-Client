@@ -16,7 +16,7 @@ import { rendererConfig } from './webpack.renderer.config';
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    name: 'morpheus',
+    name: 'Morpheus',
     extraResource: ['./executables/'],
     icon: 'src/frontend/assets/images/circle-mor-logo',
     osxSign: {
@@ -52,7 +52,9 @@ const config: ForgeConfig = {
         ? exec(`chmod +x ${filePath}`)
         : fs.chmodSync(filePath, 755);
 
-      fs.mkdirSync('executables');
+      if (!fs.existsSync('executables')) {
+        fs.mkdirSync('executables');
+      }
       fs.copyFileSync(filePath, `executables/${platformFile}`);
     },
     postPackage: async () => {
@@ -93,8 +95,8 @@ const config: ForgeConfig = {
   publishers: [
     new PublisherGithub({
       repository: {
-        owner: 'MorpheusAIs',
-        name: 'Node',
+        owner: 'MORpheus-Software',
+        name: 'Lite-Client',
       },
       draft: true,
     }),

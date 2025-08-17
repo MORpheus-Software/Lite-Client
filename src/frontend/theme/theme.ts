@@ -5,6 +5,16 @@ export interface ITheme {
     hunter: string;
     notice: string;
     balance: string;
+    // Inference mode colors
+    local: string;
+    localLight: string;
+    remote: string;
+    remoteLight: string;
+    // UI colors
+    primary: string;
+    textSecondary: string;
+    background: string;
+    border: string;
   };
   layout: {
     topBarHeight: number;
@@ -37,6 +47,16 @@ const common = {
     hunter: '#106F48',
     notice: '#FDB366',
     balance: '#FFFFFF',
+    // Inference mode colors
+    local: '#179C65', // Green for local (private)
+    localLight: '#20B574', // Lighter green
+    remote: '#4A90E2', // Blue for remote (cloud)
+    remoteLight: '#5BA2F0', // Lighter blue
+    // UI colors
+    primary: '#179C65',
+    textSecondary: '#8B9199',
+    background: '#FFFFFF',
+    border: '#E1E5E9',
   },
   layout: {
     topBarHeight: 130,

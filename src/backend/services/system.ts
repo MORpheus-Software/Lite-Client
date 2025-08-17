@@ -93,17 +93,24 @@ export const getDefaultAppDataPathByPlatform = () => {
 export const getExecutablePathByPlatform = () => {
   switch (process.platform) {
     case 'win32':
-      return isDev
-        ? path.join(__dirname, '..', 'executables', 'ollama.exe')
-        : path.join(appPath, 'resources', 'executables', 'ollama.exe');
+      if (isDev) {
+        return path.join(__dirname, '..', 'executables', 'ollama.exe');
+      } else {
+        // In production, use process.resourcesPath for proper path resolution
+        return path.join(process.resourcesPath, 'executables', 'ollama.exe');
+      }
     case 'darwin':
-      return isDev
-        ? path.join(__dirname, '..', 'executables', 'ollama-darwin')
-        : path.join(appPath, '..', 'Resources', 'executables', 'ollama-darwin');
+      if (isDev) {
+        return path.join(__dirname, '..', 'executables', 'ollama-darwin');
+      } else {
+        return path.join(process.resourcesPath, 'executables', 'ollama-darwin');
+      }
     case 'linux':
-      return isDev
-        ? path.join(__dirname, '..', 'executables', 'ollama-linux')
-        : path.join(appPath, 'resources', 'executables', 'ollama-linux');
+      if (isDev) {
+        return path.join(__dirname, '..', 'executables', 'ollama-linux');
+      } else {
+        return path.join(process.resourcesPath, 'executables', 'ollama-linux');
+      }
     default:
       throw new Error(`Unsupported platform detected: ${process.platform}`);
   }

@@ -64,10 +64,21 @@ export default createGlobalStyle`
   * {
     outline: none;
     list-style: none;
+    box-sizing: border-box;
+  }
+
+  html, body, #root {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
   }
 
   body {
     font-weight: normal;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   ::-webkit-scrollbar {

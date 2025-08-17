@@ -4,6 +4,19 @@
   box-sizing: border-box;
 }
 
+body {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 5px solid red !important;
+  outline: none !important;
+  background: red !important;
+}
+
+html {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
 html,
 body,
 #root {
@@ -13,4 +26,12 @@ body,
   margin: 0;
   padding: 0;
   flex-direction: column;
+  overflow: hidden;
+}
+
+/* Ensure content stays within window bounds */
+#root > div {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
