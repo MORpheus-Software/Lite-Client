@@ -1,0 +1,307 @@
+import * as cheerio from 'cheerio';
+import { logger } from './logger';
+
+/**
+ * Interface for parsed model data from Ollama search page
+ */
+export interface ParsedOllamaModel {
+  name: string;
+  description: string;
+  url: string;
+  capabilities: string[];
+  sizes: string[];
+  pullCount: string;
+  pullCountNumeric: number;
+  lastUpdated: string;
+  modifiedAt: string; // ISO date string
+  tags: string[];
+  digest: string;
+  isInstalled: boolean;
+}
+
+/**
+ * Validation result interface
+ */
+interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+}
+
+/**
+ * Parse the Ollama search page HTML and extract model data
+ * @param html - The HTML content from https://ollama.com/search
+ * @returns Array of parsed model objects
+ */
+export function parseOllamaSearchPage(html: string): ParsedOllamaModel[] {
+  try {
+    const $ = cheerio.load(html);
+    const models: ParsedOllamaModel[] = [];
+
+    logger.info('Starting to parse Ollama search page HTML');
+
+    // Find all model containers using the test attribute
+    $('li[x-test-model]').each((index, element) => {
+      try {
+        const $model = $(element);
+
+        // Extract basic model information
+        const name = $model.find('span[x-test-search-response-title]').text().trim();
+        const description = $model
+          .find('p.max-w-lg.break-words.text-neutral-800.text-md')
+          .text()
+          .trim();
+        const relativeUrl = $model.find('a[href^="/library/"]').attr('href');
+        const url = relativeUrl ? `https://ollama.com${relativeUrl}` : '';
+
+        // Extract capabilities (tools, thinking, etc.)
+        const capabilities: string[] = [];
+        $model.find('span[x-test-capability]').each((i, el) => {
+          const capability = $(el).text().trim();
+          if (capability) capabilities.push(capability);
+        });
+
+        // Check for cloud tag (different selector)
+        const cloudTag = $model.find('span.bg-cyan-50').text().trim();
+        if (cloudTag && cloudTag.toLowerCase() === 'cloud') {
+          capabilities.push('cloud');
+        }
+
+        // Extract model sizes
+        const sizes: string[] = [];
+        $model.find('span[x-test-size]').each((i, el) => {
+          const size = $(el).text().trim();
+          if (size) sizes.push(size);
+        });
+
+        // Extract pull count
+        const pullCount = $model.find('span[x-test-pull-count]').text().trim();
+        const pullCountNumeric = parsePullCount(pullCount);
+
+        // Extract last updated
+        const lastUpdated = $model.find('span[x-test-updated]').text().trim();
+        const modifiedAt = parseUpdateTime(lastUpdated);
+
+        // Create model object
+        const modelData: ParsedOllamaModel = {
+          name,
+          description,
+          url,
+          capabilities,
+          sizes,
+          pullCount,
+          pullCountNumeric,
+          lastUpdated,
+          modifiedAt,
+          tags: capabilities, // Use capabilities as tags for compatibility
+          digest: generatePlaceholderDigest(name),
+          isInstalled: false,
+        };
+
+        // Validate the extracted data
+        const validation = validateModelData(modelData);
+        if (validation.isValid) {
+          models.push(modelData);
+        } else {
+          logger.warn(`Invalid model data for ${name}:`, validation.errors);
+        }
+      } catch (error) {
+        logger.error(`Error parsing model at index ${index}:`, error);
+      }
+    });
+
+    logger.info(`Successfully parsed ${models.length} models from Ollama search page`);
+    return models;
+  } catch (error) {
+    logger.error('Failed to parse Ollama search page HTML:', error);
+    throw new Error(`HTML parsing failed: ${error.message}`);
+  }
+}
+
+/**
+ * Parse update time string to ISO date
+ * @param timeStr - Time string like "5 days ago", "2 months ago", "Updated 3 weeks ago"
+ * @returns ISO date string
+ */
+export function parseUpdateTime(timeStr: string): string {
+  try {
+    if (!timeStr) {
+      return new Date().toISOString();
+    }
+
+    // Clean the string - remove "Updated" prefix and normalize
+    const cleanStr = timeStr
+      .toLowerCase()
+      .replace(/^updated\s+/, '')
+      .replace(/\s+ago$/, '')
+      .trim();
+
+    const now = new Date();
+
+    // Parse different time formats
+    if (cleanStr.includes('day')) {
+      const days = parseInt(cleanStr.match(/(\d+)\s*days?/)?.[1] || '0');
+      now.setDate(now.getDate() - days);
+    } else if (cleanStr.includes('week')) {
+      const weeks = parseInt(cleanStr.match(/(\d+)\s*weeks?/)?.[1] || '0');
+      now.setDate(now.getDate() - weeks * 7);
+    } else if (cleanStr.includes('month')) {
+      const months = parseInt(cleanStr.match(/(\d+)\s*months?/)?.[1] || '0');
+      now.setMonth(now.getMonth() - months);
+    } else if (cleanStr.includes('year')) {
+      const years = parseInt(cleanStr.match(/(\d+)\s*years?/)?.[1] || '0');
+      now.setFullYear(now.getFullYear() - years);
+    } else if (cleanStr.includes('hour')) {
+      const hours = parseInt(cleanStr.match(/(\d+)\s*hours?/)?.[1] || '0');
+      now.setHours(now.getHours() - hours);
+    } else if (cleanStr.includes('minute')) {
+      const minutes = parseInt(cleanStr.match(/(\d+)\s*minutes?/)?.[1] || '0');
+      now.setMinutes(now.getMinutes() - minutes);
+    } else {
+      // If we can't parse it, assume it's recent
+      logger.warn(`Could not parse time string: "${timeStr}", using current time`);
+    }
+
+    return now.toISOString();
+  } catch (error) {
+    logger.error(`Error parsing update time "${timeStr}":`, error);
+    return new Date().toISOString();
+  }
+}
+
+/**
+ * Parse pull count string to numeric value
+ * @param pullStr - Pull count string like "3.5M", "120K", "1.2B"
+ * @returns Numeric pull count
+ */
+export function parsePullCount(pullStr: string): number {
+  try {
+    if (!pullStr) {
+      return 0;
+    }
+
+    // Clean the string and extract number with suffix
+    const cleanStr = pullStr.toLowerCase().trim();
+    const match = cleanStr.match(/(\d+(?:\.\d+)?)\s*([kmb])?/);
+
+    if (!match) {
+      logger.warn(`Could not parse pull count: "${pullStr}"`);
+      return 0;
+    }
+
+    const num = parseFloat(match[1]);
+    const suffix = match[2];
+
+    switch (suffix) {
+      case 'k':
+        return Math.floor(num * 1000);
+      case 'm':
+        return Math.floor(num * 1000000);
+      case 'b':
+        return Math.floor(num * 1000000000);
+      default:
+        return Math.floor(num);
+    }
+  } catch (error) {
+    logger.error(`Error parsing pull count "${pullStr}":`, error);
+    return 0;
+  }
+}
+
+/**
+ * Generate a placeholder digest for a model
+ * @param modelName - The model name
+ * @returns A placeholder SHA256 digest
+ */
+function generatePlaceholderDigest(modelName: string): string {
+  // Create a simple hash-like string based on model name
+  const hash = modelName
+    .split('')
+    .reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    .toString(16)
+    .padStart(8, '0');
+
+  return `sha256:${hash}${'0'.repeat(56)}`;
+}
+
+/**
+ * Validate extracted model data
+ * @param model - The parsed model data
+ * @returns Validation result with errors if any
+ */
+export function validateModelData(model: ParsedOllamaModel): ValidationResult {
+  const errors: string[] = [];
+
+  // Required fields validation
+  if (!model.name || model.name.trim().length === 0) {
+    errors.push('Model name is required');
+  }
+
+  if (!model.description || model.description.trim().length === 0) {
+    errors.push('Model description is required');
+  }
+
+  if (!model.url || !model.url.startsWith('https://ollama.com/library/')) {
+    errors.push('Valid model URL is required');
+  }
+
+  // Data type validation
+  if (!Array.isArray(model.capabilities)) {
+    errors.push('Capabilities must be an array');
+  }
+
+  if (!Array.isArray(model.sizes)) {
+    errors.push('Sizes must be an array');
+  }
+
+  if (typeof model.pullCountNumeric !== 'number' || model.pullCountNumeric < 0) {
+    errors.push('Pull count must be a non-negative number');
+  }
+
+  // Date validation
+  try {
+    new Date(model.modifiedAt);
+  } catch {
+    errors.push('Modified date must be a valid ISO string');
+  }
+
+  // Model name format validation (basic)
+  if (model.name && !/^[a-zA-Z0-9\-_.]+$/.test(model.name)) {
+    errors.push('Model name contains invalid characters');
+  }
+
+  // Size format validation
+  if (model.sizes.length > 0) {
+    const invalidSizes = model.sizes.filter((size) => !/^\d+(?:\.\d+)?[bkmgtBKMGT]?$/.test(size));
+    if (invalidSizes.length > 0) {
+      errors.push(`Invalid size formats: ${invalidSizes.join(', ')}`);
+    }
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
+ * Transform parsed model data to match the existing app format
+ * @param models - Array of parsed models
+ * @returns Array of models in the expected format
+ */
+export function transformToAppFormat(models: ParsedOllamaModel[]): any[] {
+  return models.map((model) => ({
+    name: model.name,
+    description: model.description,
+    modifiedAt: model.modifiedAt,
+    digest: model.digest,
+    tags: model.tags,
+    url: model.url,
+    isInstalled: model.isInstalled,
+    // Additional fields for enhanced functionality
+    pullCount: model.pullCount,
+    pullCountNumeric: model.pullCountNumeric,
+    capabilities: model.capabilities,
+    sizes: model.sizes,
+    lastUpdated: model.lastUpdated,
+  }));
+}

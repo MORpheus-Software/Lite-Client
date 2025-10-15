@@ -60,8 +60,17 @@ export interface BackendBridge {
     getModel: (model: string) => Promise<ModelResponse>;
     getAvailableModelsFromRegistry: (
       searchQuery?: string,
-      sortBy?: 'name' | 'downloads' | 'pulls' | 'updated_at' | 'last_updated' | 'created_at',
+      sortBy?:
+        | 'name'
+        | 'downloads'
+        | 'pulls'
+        | 'updated_at'
+        | 'last_updated'
+        | 'created_at'
+        | 'popular'
+        | 'newest',
       sortOrder?: 'asc' | 'desc',
+      category?: 'all' | 'cloud' | 'embedding' | 'vision' | 'tools' | 'thinking',
     ) => Promise<RegistryModel[]>;
     checkDiskSpaceForModel: (modelSize: number) => Promise<DiskSpaceForModel>;
     getDiskSpaceInfo: () => Promise<DiskSpaceInfo>;

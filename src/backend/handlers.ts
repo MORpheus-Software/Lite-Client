@@ -99,7 +99,8 @@ export const setModelFolderPath = async (_: Electron.IpcMainEvent) => {
   return true;
 };
 
-// New handler for registry models with scroll loading and search/sort support
+// Enhanced handler for registry models with Ollama scraping support
+// NO CACHING - Always fetches fresh data from Ollama.com
 export const getAvailableModelsFromRegistryHandler = async (
   _: Electron.IpcMainEvent,
   offset = 0,
@@ -107,8 +108,17 @@ export const getAvailableModelsFromRegistryHandler = async (
   searchQuery?: string,
   sortBy?: string,
   sortOrder?: string,
+  category?: string,
 ) => {
   try {
+    logger.info('Fetching models from Ollama.com scraper (NO CACHE)', {
+      searchQuery,
+      sortBy,
+      sortOrder,
+      category,
+      note: 'ollamadb.dev permanently unavailable',
+    });
+
     const models = await getAvailableModelsFromRegistry(
       searchQuery,
       sortBy as
@@ -118,12 +128,29 @@ export const getAvailableModelsFromRegistryHandler = async (
         | 'updated_at'
         | 'last_updated'
         | 'created_at'
+        | 'popular'
+        | 'newest'
         | undefined,
       sortOrder as 'asc' | 'desc' | undefined,
     );
-    return models;
+
+    // Apply category filtering if specified (client-side filtering for now)
+    let filteredModels = models;
+    if (category && category !== 'all') {
+      filteredModels = models.filter((model: any) => {
+        if (!model.capabilities && !model.tags) return false;
+        const modelTags = model.capabilities || model.tags || [];
+        return modelTags.includes(category);
+      });
+    }
+
+    logger.info(`Successfully fetched ${filteredModels.length} models from Ollama.com`);
+    return filteredModels;
   } catch (err) {
+    logger.error('CRITICAL: Failed to fetch models from Ollama.com (no fallback available):', err);
+    logger.error('ollamadb.dev is permanently unavailable - model browsing may be limited');
     handleError(err);
+    // Return empty array to prevent app crash
     return [];
   }
 };

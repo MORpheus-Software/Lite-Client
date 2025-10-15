@@ -66,7 +66,7 @@ class MorpheusAPIService {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${this.apiKey}`,
       },
-      timeout: 10000, // 10 second timeout
+      timeout: 60000, // 60 second timeout for chat completions
     });
 
     // Add request/response interceptors for logging
@@ -94,14 +94,58 @@ class MorpheusAPIService {
   }
 
   /**
-   * Test the API connection
+   * Test the API connection by making an authenticated request
    */
   async testConnection(): Promise<boolean> {
     try {
-      const response = await this.client.get('/models');
-      return response.status === 200;
+      // Test with a minimal chat request to verify authentication
+      // This ensures the API key is actually validated
+      const testRequest: MorpheusChatRequest = {
+        model: 'llama-3.3-70b',
+        messages: [
+          {
+            role: 'user',
+            content: 'test',
+          },
+        ],
+        max_tokens: 1,
+        stream: false,
+      };
+
+      logger.info('Testing Morpheus API connection with authenticated request...');
+      const response = await this.client.post('/chat/completions', testRequest);
+
+      if (response.status === 200) {
+        logger.info('Morpheus API connection test successful - API key is valid');
+        return true;
+      }
+
+      logger.warn(`Morpheus API returned unexpected status: ${response.status}`);
+      return false;
     } catch (error) {
-      logger.error('Morpheus API connection test failed:', error);
+      // Check for authentication/authorization errors
+      if (error.response?.status === 401) {
+        logger.error('Morpheus API authentication failed - invalid API key (401 Unauthorized)');
+        return false;
+      }
+
+      if (error.response?.status === 403) {
+        logger.error('Morpheus API access forbidden - API key lacks permissions (403 Forbidden)');
+        return false;
+      }
+
+      if (error.response?.status === 400) {
+        logger.error('Morpheus API bad request - check API key format (400 Bad Request)');
+        return false;
+      }
+
+      // For other errors (network, timeout, etc.), log but still return false
+      logger.error('Morpheus API connection test failed:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        message: error.message,
+        code: error.code,
+      });
       return false;
     }
   }

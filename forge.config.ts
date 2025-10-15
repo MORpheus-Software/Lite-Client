@@ -111,7 +111,7 @@ const config: ForgeConfig = {
     new WebpackPlugin({
       mainConfig: process.env.NODE_ENV === 'development' ? mainDevConfig : mainConfig,
       devContentSecurityPolicy:
-        "connect-src 'self' unsafe-inline ws://localhost:* https://metamask-sdk-socket.metafi.codefi.network wss://metamask-sdk-socket.metafi.codefi.network https://ollamadb.dev https://api.mor.org data:",
+        "connect-src 'self' unsafe-inline ws://localhost:* https://metamask-sdk-socket.metafi.codefi.network wss://metamask-sdk-socket.metafi.codefi.network https://ollama.com https://api.mor.org data:",
       renderer: {
         config: rendererConfig,
         entryPoints: [
