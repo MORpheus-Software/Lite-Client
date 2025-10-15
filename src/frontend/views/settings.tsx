@@ -1,5 +1,15 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
 import Styled from 'styled-components';
+import {
+  Dialog,
+  DialogContent,
+  DialogActions,
+  Button,
+  Alert,
+  Box,
+  Typography,
+} from '@mui/material';
+import { CheckCircle as CheckCircleIcon, Error as ErrorIcon } from '@mui/icons-material';
 
 // Types
 import { InferenceMode, MorpheusAPIConfig } from '../renderer';
@@ -19,6 +29,12 @@ const SettingsView = (): React.JSX.Element => {
   const [connectionStatus, setConnectionStatus] = useState<'unknown' | 'success' | 'failed'>(
     'unknown',
   );
+  const [successDialog, setSuccessDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    severity: 'success' as 'success' | 'error',
+  });
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -94,7 +110,12 @@ const SettingsView = (): React.JSX.Element => {
 
   const handleTestConnection = async () => {
     if (!morpheusConfig.apiKey.trim()) {
-      alert('Please enter an API key first.');
+      setSuccessDialog({
+        isOpen: true,
+        title: 'API Key Required',
+        message: 'Please enter an API key first.',
+        severity: 'error',
+      });
       return;
     }
 
@@ -109,14 +130,29 @@ const SettingsView = (): React.JSX.Element => {
       setConnectionStatus(isConnected ? 'success' : 'failed');
 
       if (isConnected) {
-        alert('Connection successful! Remote inference is ready to use.');
+        setSuccessDialog({
+          isOpen: true,
+          title: 'Connection Successful!',
+          message: 'Remote inference is ready to use.',
+          severity: 'success',
+        });
       } else {
-        alert('Connection failed. Please check your API key and try again.');
+        setSuccessDialog({
+          isOpen: true,
+          title: 'Connection Failed',
+          message: 'Please check your API key and try again.',
+          severity: 'error',
+        });
       }
     } catch (error) {
       console.error('Failed to test connection:', error);
       setConnectionStatus('failed');
-      alert('Connection test failed. Please check your configuration.');
+      setSuccessDialog({
+        isOpen: true,
+        title: 'Connection Test Failed',
+        message: 'Please check your configuration.',
+        severity: 'error',
+      });
     } finally {
       setIsConnectionTesting(false);
     }
@@ -273,6 +309,35 @@ const SettingsView = (): React.JSX.Element => {
           <Settings.InfoValue>✅ Notarized & Code Signed</Settings.InfoValue>
         </Settings.InfoRow>
       </Settings.Section>
+
+      {/* MUI Dialog for success/error messages */}
+      <Dialog
+        open={successDialog.isOpen}
+        onClose={() => setSuccessDialog({ ...successDialog, isOpen: false })}
+        maxWidth="sm"
+      >
+        <DialogContent sx={{ textAlign: 'center', py: 4 }}>
+          <Box sx={{ mb: 2 }}>
+            {successDialog.severity === 'success' ? (
+              <CheckCircleIcon sx={{ fontSize: 48, color: 'success.main' }} />
+            ) : (
+              <ErrorIcon sx={{ fontSize: 48, color: 'error.main' }} />
+            )}
+          </Box>
+          <Alert severity={successDialog.severity} sx={{ mb: 2 }}>
+            <strong>{successDialog.title}</strong>
+          </Alert>
+          <Typography>{successDialog.message}</Typography>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
+          <Button
+            variant="contained"
+            onClick={() => setSuccessDialog({ ...successDialog, isOpen: false })}
+          >
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Settings.Layout>
   );
 };

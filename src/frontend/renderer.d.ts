@@ -105,16 +105,6 @@ export interface BackendBridge {
     updateTitle: (chatId: string, title: string) => Promise<boolean>;
     migrate: (messages: any[], mode: 'local' | 'remote', model: string) => Promise<Chat>;
   };
-  debug: {
-    onLog: (
-      callback: (logData: {
-        level: string;
-        message: string;
-        data?: any;
-        timestamp: string;
-      }) => void,
-    ) => void;
-  };
   removeAllListeners: (channel: string) => void;
 }
 

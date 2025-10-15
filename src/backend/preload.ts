@@ -127,16 +127,6 @@ contextBridge.exposeInMainWorld('backendBridge', {
     migrate: (messages: any[], mode: 'local' | 'remote', model: string) =>
       ipcRenderer.invoke(ChatChannel.MigrateChat, messages, mode, model) as Promise<any>,
   },
-  debug: {
-    onLog: (
-      callback: (logData: {
-        level: string;
-        message: string;
-        data?: any;
-        timestamp: string;
-      }) => void,
-    ) => ipcRenderer.on('debug:log', (_, logData) => callback(logData)),
-  },
   removeAllListeners(channel: string) {
     ipcRenderer.removeAllListeners(channel);
   },

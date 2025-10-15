@@ -24,6 +24,7 @@ export enum OllamaChannel {
 
   OllamaGetModelInfo = 'ollama:get-model-info',
   OllamaGetLocalModelInfo = 'ollama:get-local-model-info',
+  OllamaCancelDownload = 'ollama:cancel-download',
 }
 
 export enum InferenceChannel {

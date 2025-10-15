@@ -39,35 +39,6 @@ const AppRoot = () => {
 
   useEffect(() => {
     handleOllamaInit();
-
-    // Setup debug logging from backend
-    const handleDebugLog = (logData: {
-      level: string;
-      message: string;
-      data?: any;
-      timestamp: string;
-    }) => {
-      const { level, message, data } = logData;
-
-      switch (level) {
-        case 'error':
-          console.error(`[DEBUG] ${message}`, data);
-          break;
-        case 'warn':
-          console.warn(`[DEBUG] ${message}`, data);
-          break;
-        case 'info':
-        default:
-          console.info(`[DEBUG] ${message}`, data);
-          break;
-      }
-    };
-
-    window.backendBridge.debug.onLog(handleDebugLog);
-
-    return () => {
-      window.backendBridge.removeAllListeners('debug:log');
-    };
   }, []);
 
   const handleOllamaInit = async () => {

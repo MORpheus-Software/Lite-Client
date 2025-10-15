@@ -264,6 +264,23 @@ export const installModelWithStatus = async (model: string) => {
   }
 };
 
+export const cancelDownload = async () => {
+  if (ollama) {
+    try {
+      await ollama.abort();
+      await sendOllamaStatusToRenderer('Download cancelled by user');
+    } catch (error) {
+      // AbortError is expected when abort() is called successfully
+      if (error instanceof Error && error.name === 'AbortError') {
+        await sendOllamaStatusToRenderer('Download cancelled by user');
+      } else {
+        console.error('Error cancelling download:', error);
+        throw error;
+      }
+    }
+  }
+};
+
 export const findModel = async (model: string) => {
   const allModels = await ollama.list();
 

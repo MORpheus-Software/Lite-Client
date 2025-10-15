@@ -92,18 +92,33 @@ export const DownloadProvider: React.FC<PropsWithChildren> = ({ children }) => {
     });
   }, []);
 
-  const cancelDownload = useCallback(() => {
+  const cancelDownload = useCallback(async () => {
     if (currentDownload?.isActive) {
-      setCurrentDownload((prev) =>
-        prev
-          ? {
-              ...prev,
-              isActive: false,
-              status: 'Download cancelled',
-              error: 'Download was cancelled by user',
-            }
-          : null,
-      );
+      try {
+        await window.backendBridge.ollama.cancelDownload();
+        setCurrentDownload((prev) =>
+          prev
+            ? {
+                ...prev,
+                isActive: false,
+                status: 'Download cancelled',
+                error: 'Download was cancelled by user',
+              }
+            : null,
+        );
+      } catch (error) {
+        console.error('Failed to cancel download:', error);
+        setCurrentDownload((prev) =>
+          prev
+            ? {
+                ...prev,
+                isActive: false,
+                status: 'Failed to cancel download',
+                error: 'Could not cancel download',
+              }
+            : null,
+        );
+      }
     }
   }, [currentDownload?.isActive]);
 

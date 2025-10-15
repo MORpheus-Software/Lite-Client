@@ -13,6 +13,7 @@ import {
   getCurrentModel,
   deleteModel,
   pullAndReplaceModel,
+  cancelDownload,
 } from './services/ollama';
 import { getInferenceManager } from './services/inference-manager';
 import { OllamaQuestion, InferenceMode, MorpheusAPIConfig } from './types';
@@ -69,6 +70,16 @@ export const askOlama = async (_: Electron.IpcMainEvent, { model, query }: Ollam
     return response;
   } catch (err) {
     handleError(err);
+  }
+};
+
+export const cancelDownloadHandler = async (_: Electron.IpcMainEvent) => {
+  try {
+    await cancelDownload();
+    return true;
+  } catch (err) {
+    handleError(err);
+    return false;
   }
 };
 
