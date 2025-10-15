@@ -55,6 +55,8 @@ contextBridge.exposeInMainWorld('backendBridge', {
       ipcRenderer.invoke(OllamaChannel.OllamaDeleteModel, modelName),
     pullAndReplaceModel: (modelName: string) =>
       ipcRenderer.invoke(OllamaChannel.OllamaPullAndReplaceModel, modelName),
+    cancelDownload: () =>
+      ipcRenderer.invoke(OllamaChannel.OllamaCancelDownload) as Promise<boolean>,
 
     getModelInfo: (modelUrl: string, modelName: string) =>
       ipcRenderer.invoke(OllamaChannel.OllamaGetModelInfo, modelUrl, modelName) as Promise<{
@@ -124,6 +126,16 @@ contextBridge.exposeInMainWorld('backendBridge', {
       ipcRenderer.invoke(ChatChannel.UpdateTitle, chatId, title) as Promise<boolean>,
     migrate: (messages: any[], mode: 'local' | 'remote', model: string) =>
       ipcRenderer.invoke(ChatChannel.MigrateChat, messages, mode, model) as Promise<any>,
+  },
+  debug: {
+    onLog: (
+      callback: (logData: {
+        level: string;
+        message: string;
+        data?: any;
+        timestamp: string;
+      }) => void,
+    ) => ipcRenderer.on('debug:log', (_, logData) => callback(logData)),
   },
   removeAllListeners(channel: string) {
     ipcRenderer.removeAllListeners(channel);

@@ -11,12 +11,14 @@ import AppInit from './components/layout/app-init';
 // providers
 import ThemeProvider from './theme/theme-provider';
 import { ChatProvider } from './contexts/chat-context';
+import { DownloadProvider } from './contexts/download-context';
 // import { MetaMaskProvider } from '@metamask/sdk-react';
 
 // modals
 // import QrCodeModal from './components/modals/qr-code-modal';
 
 // styles
+import './index.css';
 import GlobalStyle from './theme/index';
 
 // constants
@@ -37,6 +39,35 @@ const AppRoot = () => {
 
   useEffect(() => {
     handleOllamaInit();
+
+    // Setup debug logging from backend
+    const handleDebugLog = (logData: {
+      level: string;
+      message: string;
+      data?: any;
+      timestamp: string;
+    }) => {
+      const { level, message, data } = logData;
+
+      switch (level) {
+        case 'error':
+          console.error(`[DEBUG] ${message}`, data);
+          break;
+        case 'warn':
+          console.warn(`[DEBUG] ${message}`, data);
+          break;
+        case 'info':
+        default:
+          console.info(`[DEBUG] ${message}`, data);
+          break;
+      }
+    };
+
+    window.backendBridge.debug.onLog(handleDebugLog);
+
+    return () => {
+      window.backendBridge.removeAllListeners('debug:log');
+    };
   }, []);
 
   const handleOllamaInit = async () => {
@@ -89,8 +120,10 @@ const AppRoot = () => {
     <React.StrictMode>
       <ThemeProvider>
         <ChatProvider>
-          {!isInitialized && <AppInit />}
-          {isInitialized && <Main />}
+          <DownloadProvider>
+            {!isInitialized && <AppInit />}
+            {isInitialized && <Main />}
+          </DownloadProvider>
         </ChatProvider>
       </ThemeProvider>
     </React.StrictMode>

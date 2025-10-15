@@ -7,6 +7,7 @@ import {
   MorpheusModel,
 } from './morpheus-api';
 import { askOllama, getAllLocalModels, getCurrentModel } from './ollama';
+import { BrowserWindow } from 'electron';
 
 // Storage
 import {
@@ -14,6 +15,23 @@ import {
   saveInferenceConfigToStorage,
   getLastUsedLocalModelFromStorage,
 } from '../storage';
+
+// Helper function to send debug info to frontend
+const logToFrontend = (level: 'info' | 'warn' | 'error', message: string, data?: any) => {
+  // Backend logging
+  logger[level](message, data);
+
+  // Frontend logging
+  const windows = BrowserWindow.getAllWindows();
+  if (windows.length > 0) {
+    windows[0].webContents.send('debug:log', {
+      level,
+      message,
+      data,
+      timestamp: new Date().toISOString(),
+    });
+  }
+};
 
 export interface InferenceModel {
   id: string;
@@ -337,8 +355,7 @@ class InferenceManager {
         morpheusConfig: this.morpheusConfig ? 'Config exists' : 'No config',
         apiKey: this.morpheusConfig?.apiKey ? 'API key present' : 'No API key',
       };
-      logger.warn('Morpheus API not configured, falling back to local mode', debugInfo);
-      console.warn('🔧 Morpheus API not configured, falling back to local mode', debugInfo);
+      logToFrontend('warn', 'Morpheus API not configured, falling back to local mode', debugInfo);
       return this.askLocal(query, model, conversationHistory);
     }
 
@@ -401,8 +418,7 @@ class InferenceManager {
         url: error.config?.url,
         timeout: error.code === 'ECONNABORTED' ? 'Request timed out' : undefined,
       };
-      logger.error('Remote inference failed:', errorInfo);
-      console.error('❌ Remote inference failed:', errorInfo);
+      logToFrontend('error', 'Remote inference failed', errorInfo);
 
       // Determine if we should fallback based on error type
       const shouldFallback = this.shouldFallbackToLocal(error);
@@ -440,8 +456,7 @@ class InferenceManager {
    */
   private shouldFallbackToLocal(error: any): boolean {
     if (!error) {
-      logger.info('Fallback decision: No error object, defaulting to fallback');
-      console.info('🔄 Fallback decision: No error object, defaulting to fallback');
+      logToFrontend('info', 'Fallback decision: No error object, defaulting to fallback');
       return true;
     }
 
@@ -459,12 +474,9 @@ class InferenceManager {
         errorCode,
         errorMessage: error.message,
       };
-      logger.info(
+      logToFrontend(
+        'info',
         'Fallback decision: Authentication/authorization error - NOT falling back',
-        authErrorInfo,
-      );
-      console.info(
-        '🔐 Fallback decision: Authentication/authorization error - NOT falling back',
         authErrorInfo,
       );
       return false;
@@ -476,8 +488,11 @@ class InferenceManager {
         errorCode,
         errorMessage: error.message,
       };
-      logger.info('Fallback decision: Bad request error - NOT falling back', badRequestInfo);
-      console.info('🚫 Fallback decision: Bad request error - NOT falling back', badRequestInfo);
+      logToFrontend(
+        'info',
+        'Fallback decision: Bad request error - NOT falling back',
+        badRequestInfo,
+      );
       return false;
     }
 
@@ -502,8 +517,11 @@ class InferenceManager {
                   ? 'Connection refused'
                   : 'Unknown network issue',
       };
-      logger.info('Fallback decision: Network/server error - FALLING BACK', networkErrorInfo);
-      console.info('🌐 Fallback decision: Network/server error - FALLING BACK', networkErrorInfo);
+      logToFrontend(
+        'info',
+        'Fallback decision: Network/server error - FALLING BACK',
+        networkErrorInfo,
+      );
       return true;
     }
 
@@ -513,9 +531,9 @@ class InferenceManager {
       errorMessage: error.message,
       errorType: typeof error,
     };
-    logger.info('Fallback decision: Unknown error type - FALLING BACK (default)', unknownErrorInfo);
-    console.info(
-      '❓ Fallback decision: Unknown error type - FALLING BACK (default)',
+    logToFrontend(
+      'info',
+      'Fallback decision: Unknown error type - FALLING BACK (default)',
       unknownErrorInfo,
     );
     return true;

@@ -70,6 +70,7 @@ export interface BackendBridge {
     getLastUsedLocalModel: () => Promise<string>;
     deleteModel: (modelName: string) => Promise<boolean>;
     pullAndReplaceModel: (modelName: string) => Promise<boolean>;
+    cancelDownload: () => Promise<boolean>;
 
     getModelInfo: (modelUrl: string, modelName: string) => Promise<any>;
     getLocalModelInfo: (modelName: string) => Promise<any>;
@@ -103,6 +104,16 @@ export interface BackendBridge {
     sendMessage: (chatId: string, message: string) => Promise<string>;
     updateTitle: (chatId: string, title: string) => Promise<boolean>;
     migrate: (messages: any[], mode: 'local' | 'remote', model: string) => Promise<Chat>;
+  };
+  debug: {
+    onLog: (
+      callback: (logData: {
+        level: string;
+        message: string;
+        data?: any;
+        timestamp: string;
+      }) => void,
+    ) => void;
   };
   removeAllListeners: (channel: string) => void;
 }
