@@ -1,7 +1,7 @@
 {
   "name": "morpheus",
   "productName": "Morpheus",
-  "version": "-daily.1",
+  "version": "0.7.4-daily.8",
   "description": "Morpheus is private, sovereign, AI",
   "main": ".webpack/main",
   "scripts": {
