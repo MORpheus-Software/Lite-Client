@@ -7,8 +7,6 @@ import {
   MorpheusModel,
 } from './morpheus-api';
 import { askOllama, getAllLocalModels, getCurrentModel } from './ollama';
-import { BrowserWindow } from 'electron';
-
 // Storage
 import {
   getInferenceConfigFromStorage,
@@ -16,21 +14,13 @@ import {
   getLastUsedLocalModelFromStorage,
 } from '../storage';
 
-// Helper function to send debug info to frontend
+// Helper function for debug logging
 const logToFrontend = (level: 'info' | 'warn' | 'error', message: string, data?: any) => {
-  // Backend logging
-  logger[level](message, data);
+  // Backend logging with clear prefix for remote debugging
+  logger[level](`[REMOTE-DEBUG] ${message}`, data);
 
-  // Frontend logging
-  const windows = BrowserWindow.getAllWindows();
-  if (windows.length > 0) {
-    windows[0].webContents.send('debug:log', {
-      level,
-      message,
-      data,
-      timestamp: new Date().toISOString(),
-    });
-  }
+  // Also log to backend console for immediate visibility
+  console[level](`[REMOTE-DEBUG] ${message}`, data);
 };
 
 export interface InferenceModel {
