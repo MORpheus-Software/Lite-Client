@@ -34,14 +34,20 @@ contextBridge.exposeInMainWorld('backendBridge', {
     getAllModels: () => invokeNoParam<ListResponse>(OllamaChannel.OllamaGetAllModels),
     getModel: (model: string) =>
       invoke<string[], ModelResponse>(OllamaChannel.OllamaGetModel, model),
-    getAvailableModelsFromRegistry: (searchQuery?: string, sortBy?: string, sortOrder?: string) =>
+    getAvailableModelsFromRegistry: (
+      searchQuery?: string,
+      sortBy?: string,
+      sortOrder?: string,
+      category?: string,
+    ) =>
       ipcRenderer.invoke(
         OllamaChannel.OllamaGetAvailableModelsFromRegistry,
-        0, // offset - always 0, no pagination
-        20, // limit - not used anymore, backend uses 500
+        0, // offset - always 0, no pagination (NO CACHING)
+        500, // limit - fetch all available models (NO CACHING)
         searchQuery,
         sortBy,
         sortOrder,
+        category, // New category parameter for filtering
       ) as Promise<any[]>,
     // Cache-related functions removed - models are always fetched fresh
     checkDiskSpaceForModel: (modelSize: number) =>

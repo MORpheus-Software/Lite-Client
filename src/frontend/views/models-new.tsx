@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import styled, { useTheme } from 'styled-components';
+import styled from 'styled-components';
+import { Alert, Button, Typography } from '@mui/material';
 
 // Import types from the backend bridge
 import { RegistryModel } from '../renderer.d';
@@ -24,9 +25,9 @@ interface RemoteModel {
 }
 
 // Debounce utility function
-const debounce = (func: Function, wait: number) => {
+const debounce = (func: (...args: unknown[]) => void, wait: number) => {
   let timeout: NodeJS.Timeout;
-  return function executedFunction(...args: any[]) {
+  return function executedFunction(...args: unknown[]) {
     const later = () => {
       clearTimeout(timeout);
       func(...args);
@@ -59,7 +60,6 @@ const toggleFavorite = (blockchainID: string): boolean => {
 };
 
 const ModelsView: React.FC = () => {
-  const theme = useTheme();
   const [activeTab, setActiveTab] = useState<'local' | 'remote'>('local');
   const [localModels, setLocalModels] = useState<LocalModel[]>([]);
   const [communityModels, setCommunityModels] = useState<CommunityModel[]>([]);
@@ -75,11 +75,19 @@ const ModelsView: React.FC = () => {
 
   // Search and sort state
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<'downloads' | 'name' | 'updated_at' | 'last_updated'>(
-    'downloads',
-  );
+  const [sortBy, setSortBy] = useState<
+    'popular' | 'newest' | 'downloads' | 'name' | 'updated_at' | 'last_updated'
+  >('popular');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [isSearching, setIsSearching] = useState(false);
+
+  // New filter state for Ollama categories
+  const [selectedCategory, setSelectedCategory] = useState<
+    'all' | 'cloud' | 'embedding' | 'vision' | 'tools' | 'thinking'
+  >('all');
+
+  // Error state for Ollama.com connection failures
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
   // Model info modal state
   const [showModelInfoModal, setShowModelInfoModal] = useState(false);
@@ -99,18 +107,30 @@ const ModelsView: React.FC = () => {
   }, [activeTab]);
 
   const loadTabData = async () => {
+    await loadTabDataWithSort(sortBy, sortOrder);
+  };
+
+  // Helper function to load data with specific sort parameters
+  const loadTabDataWithSort = async (
+    sortByParam: 'popular' | 'newest' | 'downloads' | 'name' | 'updated_at' | 'last_updated',
+    sortOrderParam: 'asc' | 'desc',
+  ) => {
     setLoading(true);
+    setConnectionError(null); // Clear previous errors
+
     try {
       if (activeTab === 'local') {
         // Load downloaded models
         const localResponse = await window.backendBridge.ollama.getAllModels();
         setLocalModels(localResponse.models || []);
 
-        // Load community models (always 500 limit, no pagination)
+        // Load community models (NO CACHING - always fresh scraping)
+        console.log(`sortBy="${sortByParam}", sortOrder="${sortOrderParam}"`);
         const communityResponse = await window.backendBridge.ollama.getAvailableModelsFromRegistry(
           searchQuery || undefined,
-          sortBy,
-          sortOrder,
+          sortByParam, // Use parameter directly
+          sortOrderParam, // Use parameter directly
+          selectedCategory === 'all' ? undefined : selectedCategory,
         );
         setCommunityModels(communityResponse || []);
 
@@ -134,6 +154,10 @@ const ModelsView: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to load models:', error);
+      setConnectionError(
+        'Unable to load models from Ollama.com. Please check your internet connection.',
+      );
+      setCommunityModels([]); // Ensure empty state
     } finally {
       setLoading(false);
     }
@@ -225,14 +249,26 @@ const ModelsView: React.FC = () => {
 
   // Simplified search - no pagination, get all results
   const performSearch = async (query: string) => {
+    await performSearchWithSort(query, sortBy, sortOrder);
+  };
+
+  // Helper function to search with specific sort parameters
+  const performSearchWithSort = async (
+    query: string,
+    sortByParam: 'popular' | 'newest' | 'downloads' | 'name' | 'updated_at' | 'last_updated',
+    sortOrderParam: 'asc' | 'desc',
+  ) => {
     setIsSearching(true);
 
     try {
-      console.log(`🔍 DEBUG: Search query: '${query}'`);
+      console.log(
+        `🔍 DEBUG: Search query: '${query}', category: '${selectedCategory}', sort: '${sortByParam}' (${sortOrderParam}) (NO CACHE)`,
+      );
       const response = await window.backendBridge.ollama.getAvailableModelsFromRegistry(
         query || undefined,
-        sortBy,
-        sortOrder,
+        sortByParam, // Use parameter directly
+        sortOrderParam, // Use parameter directly
+        selectedCategory === 'all' ? undefined : selectedCategory,
       );
 
       setCommunityModels(response || []);
@@ -243,9 +279,13 @@ const ModelsView: React.FC = () => {
         setTotalModels(total);
       }
 
-      console.log(`🔍 DEBUG: Search complete - got ${response?.length || 0} results`);
+      console.log(
+        `🔍 DEBUG: Search complete - got ${response?.length || 0} results (fresh scrape)`,
+      );
     } catch (error) {
       console.error('Search failed:', error);
+      setConnectionError('Search failed. Unable to connect to Ollama.com.');
+      setCommunityModels([]);
     } finally {
       setIsSearching(false);
     }
@@ -273,12 +313,40 @@ const ModelsView: React.FC = () => {
 
   // Handle sort change
   const handleSortChange = async (newSortBy: string) => {
-    setSortBy(newSortBy as 'downloads' | 'name' | 'updated_at' | 'last_updated');
+    console.log(`Sort changed to "${newSortBy}" (order: ${sortOrder})`);
+    setSortBy(
+      newSortBy as 'popular' | 'newest' | 'downloads' | 'name' | 'updated_at' | 'last_updated',
+    );
+    setConnectionError(null); // Clear errors when user tries new sort
+
+    // Use the NEW sortBy value directly instead of relying on state
+    const typedSortBy = newSortBy as
+      | 'popular'
+      | 'newest'
+      | 'downloads'
+      | 'name'
+      | 'updated_at'
+      | 'last_updated';
     if (searchQuery.trim()) {
       // Re-search with new sort
+      console.log(`sort by "${newSortBy}" (order: ${sortOrder})`);
+      await performSearchWithSort(searchQuery, typedSortBy, sortOrder);
+    } else {
+      // Reload data with new sort
+      console.log(`sort order "${newSortBy}"`);
+      await loadTabDataWithSort(typedSortBy, sortOrder);
+    }
+  };
+
+  // Handle category filter change
+  const handleCategoryChange = async (
+    newCategory: 'all' | 'cloud' | 'embedding' | 'vision' | 'tools' | 'thinking',
+  ) => {
+    setSelectedCategory(newCategory);
+    setConnectionError(null); // Clear errors when user tries new filter
+    if (searchQuery.trim()) {
       await performSearch(searchQuery);
     } else {
-      // Reload data (no sort controls when not searching, so this won't be called)
       await loadTabData();
     }
   };
@@ -287,12 +355,14 @@ const ModelsView: React.FC = () => {
   const handleSortOrderToggle = async () => {
     const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
     setSortOrder(newOrder);
+
+    // Use the NEW sortOrder value directly instead of relying on state
     if (searchQuery.trim()) {
       // Re-search with new sort order
-      await performSearch(searchQuery);
+      await performSearchWithSort(searchQuery, sortBy, newOrder);
     } else {
-      // Reload data (no sort controls when not searching, so this won't be called)
-      await loadTabData();
+      // Reload data with new sort order
+      await loadTabDataWithSort(sortBy, newOrder);
     }
   };
 
@@ -339,6 +409,14 @@ const ModelsView: React.FC = () => {
                 onModelInfo={handleModelInfo}
                 onLocalModelInfo={handleLocalModelInfo}
                 loadingModelInfo={loadingModelInfo}
+                selectedCategory={selectedCategory}
+                onCategoryChange={handleCategoryChange}
+                loading={loading}
+                connectionError={connectionError}
+                onRetry={() => {
+                  setConnectionError(null);
+                  loadTabData();
+                }}
               />
             ) : (
               <RemoteTabContent
@@ -451,6 +529,13 @@ const LocalTabContent: React.FC<{
   onModelInfo: (modelUrl: string, modelName: string) => void;
   onLocalModelInfo: (modelName: string) => void;
   loadingModelInfo: boolean;
+  selectedCategory: 'all' | 'cloud' | 'embedding' | 'vision' | 'tools' | 'thinking';
+  onCategoryChange: (
+    category: 'all' | 'cloud' | 'embedding' | 'vision' | 'tools' | 'thinking',
+  ) => void;
+  loading: boolean;
+  connectionError: string | null;
+  onRetry: () => void;
 }> = ({
   localModels,
   communityModels,
@@ -468,6 +553,11 @@ const LocalTabContent: React.FC<{
   onModelInfo,
   onLocalModelInfo,
   loadingModelInfo,
+  selectedCategory,
+  onCategoryChange,
+  loading,
+  connectionError,
+  onRetry,
 }) => {
   return (
     <LocalContainer>
@@ -514,25 +604,47 @@ const LocalTabContent: React.FC<{
               {searchQuery && <ClearButton onClick={onClearSearch}>✕</ClearButton>}
             </SearchInput>
 
-            {searchQuery.trim() && (
-              <SortControls>
-                <SortLabel>Sort by:</SortLabel>
-                <SortSelect
-                  value={sortBy}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                    onSortChange(e.target.value)
-                  }
-                >
-                  <option value="downloads">Most Popular</option>
-                  <option value="name">Name</option>
-                  <option value="updated_at">Recently Updated</option>
-                  <option value="last_updated">Last Updated</option>
-                </SortSelect>
-                <SortOrderButton onClick={onSortOrderToggle}>
-                  {sortOrder === 'asc' ? '↑ A-Z' : '↓ Z-A'}
-                </SortOrderButton>
-              </SortControls>
-            )}
+            <FilterControls>
+              <FilterLabel>Category:</FilterLabel>
+              <CategorySelect
+                value={selectedCategory}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                  onCategoryChange(
+                    e.target.value as
+                      | 'all'
+                      | 'cloud'
+                      | 'embedding'
+                      | 'vision'
+                      | 'tools'
+                      | 'thinking',
+                  )
+                }
+              >
+                <option value="all">All Models</option>
+                <option value="cloud">Cloud</option>
+                <option value="embedding">Embedding</option>
+                <option value="vision">Vision</option>
+                <option value="tools">Tools</option>
+                <option value="thinking">Thinking</option>
+              </CategorySelect>
+            </FilterControls>
+
+            <SortControls>
+              <SortLabel>Sort by:</SortLabel>
+              <SortSelect
+                value={sortBy}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onSortChange(e.target.value)}
+              >
+                <option value="popular">Popular</option>
+                <option value="newest">Newest</option>
+                <option value="downloads">Downloads</option>
+                <option value="name">Name</option>
+                <option value="last_updated">Last Updated</option>
+              </SortSelect>
+              <SortOrderButton onClick={onSortOrderToggle}>
+                {sortOrder === 'asc' ? '↑ A-Z' : '↓ Z-A'}
+              </SortOrderButton>
+            </SortControls>
           </SearchAndSortRow>
 
           {/* Search Results Info */}
@@ -547,11 +659,25 @@ const LocalTabContent: React.FC<{
 
         {communityModels.length === 0 ? (
           <>
+            {loading && <LoadingMessage>Loading models from Ollama.com...</LoadingMessage>}
             {isSearching && <LoadingMessage>Searching...</LoadingMessage>}
-            {searchQuery && !isSearching && (
+            {connectionError && !loading && !isSearching && (
+              <ErrorContainer>
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  <strong>Connection Error</strong>
+                </Alert>
+                <Typography sx={{ mb: 2, color: 'text.secondary' }}>{connectionError}</Typography>
+                <Button variant="outlined" onClick={onRetry} sx={{ mt: 1 }}>
+                  Retry
+                </Button>
+              </ErrorContainer>
+            )}
+            {!loading && !isSearching && !connectionError && searchQuery && (
               <EmptyMessage>No models found for "{searchQuery}"</EmptyMessage>
             )}
-            {!searchQuery && !isSearching && <EmptyMessage>No models available</EmptyMessage>}
+            {!loading && !isSearching && !connectionError && !searchQuery && (
+              <EmptyMessage>No models available</EmptyMessage>
+            )}
           </>
         ) : (
           <ModelTable>
@@ -865,6 +991,13 @@ const EmptyMessage = styled.div`
   font-style: italic;
 `;
 
+const ErrorContainer = styled.div`
+  text-align: center;
+  padding: 40px 20px;
+  max-width: 500px;
+  margin: 0 auto;
+`;
+
 // Search and Sort Components
 const SearchContainer = styled.div`
   display: flex;
@@ -1170,6 +1303,166 @@ const CodeExample = styled.pre`
   font-size: 14px;
   overflow-x: auto;
   white-space: pre-wrap;
+`;
+
+// New styled components for enhanced model display
+const FilterControls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 16px;
+`;
+
+const FilterLabel = styled.label`
+  color: ${(props) => props.theme.colors.core};
+  font-size: 14px;
+  font-weight: 500;
+`;
+
+const CategorySelect = styled.select`
+  background: ${(props) => props.theme.colors.background};
+  border: 1px solid ${(props) => props.theme.colors.border};
+  border-radius: 6px;
+  color: ${(props) => props.theme.colors.core};
+  padding: 6px 12px;
+  font-size: 14px;
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    border-color: ${(props) => props.theme.colors.emerald};
+  }
+`;
+
+const EnhancedTableRow = styled(TableRow)`
+  &:hover {
+    background: ${(props) => props.theme.colors.background}50;
+  }
+`;
+
+const ModelInfoCell = styled(TableCell)`
+  padding: 16px;
+  vertical-align: top;
+  width: 40%;
+`;
+
+const ModelDetailsCell = styled(TableCell)`
+  padding: 16px;
+  vertical-align: top;
+  width: 25%;
+`;
+
+const ModelStatsCell = styled(TableCell)`
+  padding: 16px;
+  vertical-align: top;
+  width: 15%;
+`;
+
+const EnhancedModelName = styled.div`
+  font-size: 16px;
+  font-weight: 600;
+  color: ${(props) => props.theme.colors.emerald};
+  margin-bottom: 4px;
+`;
+
+const ModelDescription = styled.div`
+  font-size: 14px;
+  color: ${(props) => props.theme.colors.textSecondary};
+  line-height: 1.4;
+  margin-bottom: 8px;
+`;
+
+const ModelTag = styled.span<{ tagType: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background: ${(props) => {
+    switch (props.tagType) {
+      case 'cloud':
+        return '#0ea5e9';
+      case 'embedding':
+        return '#8b5cf6';
+      case 'vision':
+        return '#f59e0b';
+      case 'tools':
+        return '#10b981';
+      case 'thinking':
+        return '#ec4899';
+      default:
+        return props.theme.colors.emerald;
+    }
+  }}20;
+  color: ${(props) => {
+    switch (props.tagType) {
+      case 'cloud':
+        return '#0ea5e9';
+      case 'embedding':
+        return '#8b5cf6';
+      case 'vision':
+        return '#f59e0b';
+      case 'tools':
+        return '#10b981';
+      case 'thinking':
+        return '#ec4899';
+      default:
+        return props.theme.colors.emerald;
+    }
+  }};
+`;
+
+const SizesContainer = styled.div`
+  margin-bottom: 8px;
+`;
+
+const DetailLabel = styled.span`
+  font-size: 12px;
+  font-weight: 600;
+  color: ${(props) => props.theme.colors.core};
+  margin-right: 8px;
+`;
+
+const SizeTag = styled.span`
+  background: ${(props) => props.theme.colors.emerald}20;
+  color: ${(props) => props.theme.colors.emerald};
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  margin-right: 4px;
+`;
+
+const UpdateInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const UpdateTime = styled.span`
+  font-size: 12px;
+  color: ${(props) => props.theme.colors.textSecondary};
+`;
+
+const PullStats = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const PullCount = styled.div`
+  font-size: 18px;
+  font-weight: 700;
+  color: ${(props) => props.theme.colors.emerald};
+`;
+
+const PullLabel = styled.div`
+  font-size: 12px;
+  color: ${(props) => props.theme.colors.textSecondary};
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 `;
 
 export default ModelsView;

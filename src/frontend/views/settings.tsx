@@ -133,14 +133,15 @@ const SettingsView = (): React.JSX.Element => {
         setSuccessDialog({
           isOpen: true,
           title: 'Connection Successful!',
-          message: 'Remote inference is ready to use.',
+          message: 'API key is valid and remote inference is ready to use.',
           severity: 'success',
         });
       } else {
         setSuccessDialog({
           isOpen: true,
           title: 'Connection Failed',
-          message: 'Please check your API key and try again.',
+          message:
+            'API key validation failed. Please check that your API key is correct and has the necessary permissions.',
           severity: 'error',
         });
       }
@@ -150,7 +151,8 @@ const SettingsView = (): React.JSX.Element => {
       setSuccessDialog({
         isOpen: true,
         title: 'Connection Test Failed',
-        message: 'Please check your configuration.',
+        message:
+          'Unable to test API connection. Please check your network connection and API configuration.',
         severity: 'error',
       });
     } finally {

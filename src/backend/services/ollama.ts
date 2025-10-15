@@ -6,6 +6,8 @@ import { sendOllamaStatusToRenderer } from '..';
 import { MOR_PROMPT } from './prompts';
 import path from 'path';
 import checkDiskSpace from 'check-disk-space';
+import axios from 'axios';
+import { parseOllamaSearchPage, transformToAppFormat } from './ollama-scraper';
 
 // events
 import { IpcMainChannel } from '../../events';
@@ -302,68 +304,91 @@ export const stopOllama = async () => {
   ollamaProcess = null;
 };
 
-// Fetch models from Ollama registry - always fresh data, no caching
+// ============================================================================
+// MODEL REGISTRY FUNCTIONS
+// ============================================================================
+
+// REMOVED: Legacy ollamadb.dev implementation
+// ollamadb.dev is permanently unavailable - no longer supported
+
+// ACTIVE IMPLEMENTATION: Fetch models from official Ollama search page
+// This function scrapes https://ollama.com/search for official model data
+// NO CACHING - Always fetches fresh data
 export const getAvailableModelsFromRegistry = async (
   searchQuery?: string,
-  sortBy?: 'name' | 'downloads' | 'pulls' | 'updated_at' | 'last_updated' | 'created_at',
+  sortBy?:
+    | 'name'
+    | 'downloads'
+    | 'pulls'
+    | 'updated_at'
+    | 'last_updated'
+    | 'created_at'
+    | 'popular'
+    | 'newest',
   sortOrder?: 'asc' | 'desc',
 ) => {
-  // Build URL with parameters - always use limit=500, skip=0
-  const params = new URLSearchParams();
-  params.append('limit', '500');
-  params.append('skip', '0');
+  try {
+    logger.info('Fetching models from official Ollama.com (NO CACHE)', {
+      searchQuery,
+      sortBy,
+      sortOrder,
+    });
 
-  if (searchQuery && searchQuery.trim()) {
-    // Search mode: add search term and optional sort
-    params.append('search', searchQuery.trim());
-    if (sortBy) {
-      params.append('sort_by', sortBy);
+    // Build URL for Ollama search
+    let url = 'https://ollama.com/search';
+    const params = new URLSearchParams();
+
+    if (searchQuery && searchQuery.trim()) {
+      params.append('q', searchQuery.trim());
     }
-    if (sortOrder) {
-      params.append('order', sortOrder);
+
+    // Map sort options to Ollama's format
+    if (sortBy === 'newest' || sortBy === 'updated_at' || sortBy === 'last_updated') {
+      params.append('sort', 'newest');
     }
-  } else {
-    // No search: use fixed sort by popularity
-    params.append('sort_by', 'pulls');
-    params.append('order', 'desc');
+    // Popular/pulls/downloads is default, no param needed
+
+    if (params.toString()) {
+      url += '?' + params.toString();
+    }
+
+    logger.info(`Scraping Ollama search page: ${url}`);
+
+    // Use Axios for Electron compatibility (NO CACHING)
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Morpheus-Client/1.0',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+      },
+      timeout: 10000,
+    });
+
+    const html = response.data;
+    logger.info(`Fetched ${(html.length / 1024).toFixed(2)} KB of HTML from Ollama.com`);
+
+    // Parse with our scraper
+    const parsedModels = parseOllamaSearchPage(html);
+    logger.info(`Parsed ${parsedModels.length} models from HTML`);
+
+    // Transform to app format with client-side sorting
+    const transformedModels = transformToAppFormat(parsedModels, sortBy, sortOrder);
+
+    logger.info(
+      `Successfully scraped ${transformedModels.length} models from Ollama.com (sorted by: ${sortBy || 'popular'})`,
+    );
+    return transformedModels;
+  } catch (error) {
+    logger.error('CRITICAL: Failed to scrape Ollama.com and no fallback available:', error);
+
+    // ollamadb.dev is permanently gone - no fallback possible
+    // Return empty array to prevent app crash, but log the critical error
+    logger.error('Model browsing unavailable - Ollama.com scraping failed');
+
+    // Could implement emergency fallback to hardcoded popular models list
+    // For now, return empty to fail gracefully
+    return [];
   }
-
-  const url = `https://ollamadb.dev/api/v1/models?${params}`;
-
-  // Fetch from community API
-  const response = await fetch(url, {
-    headers: {
-      Accept: 'application/json',
-      'User-Agent': 'Morpheus-Client/1.0',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Community API request failed: ${response.status} ${response.statusText}`);
-  }
-
-  const data = await response.json();
-
-  // Transform the data to match our expected format - pure API passthrough
-  // The community API returns {models: [...]} format
-  const models = data.models
-    ? data.models.map((model: any, index: number) => {
-        // Use model_name first (from ollamadb.dev), then fallback to name, then index-based fallback
-        const modelName = model.model_name || model.name || `unknown-${index}`;
-
-        return {
-          name: modelName,
-          description: model.description || '',
-          modifiedAt: model.last_updated || '2024-01-01T00:00:00Z',
-          digest: model.digest || 'sha256:1234567890abcdef',
-          tags: model.tags || ['ai', 'llm'],
-          url: model.url || '',
-          isInstalled: false, // Default - no processing
-        };
-      })
-    : [];
-
-  return models;
 };
 
 // No cache functions needed - models are always fetched fresh
@@ -635,10 +660,33 @@ function extractExamples(html: string): string[] {
 function extractParameters(html: string): Record<string, string> {
   const params: Record<string, string> = {};
 
-  // Look for parameter information
-  const sizeMatch = html.match(/([0-9.]+[BMG])/i);
-  if (sizeMatch) {
-    params.size = sizeMatch[1];
+  // Enhanced size extraction patterns for individual model pages
+  const sizePatterns = [
+    /([0-9.]+[bB])\s*parameters?/i, // "7b parameters"
+    /([0-9.]+[bB])\s*param/i, // "7b param"
+    /([0-9.]+[bB])\s*model/i, // "7b model"
+    /([0-9.]+[bB])\s*size/i, // "7b size"
+    /size[^>]*>([0-9.]+[bB])/i, // HTML size tags
+    /([0-9.]+[bB])(?:\s|<|$)/i, // Just "7b" followed by space/tag/end
+    /([0-9.]+[BMG])/i, // Original pattern as fallback
+  ];
+
+  for (const pattern of sizePatterns) {
+    const match = html.match(pattern);
+    if (match) {
+      params.size = match[1].toLowerCase();
+      break;
+    }
+  }
+
+  // If no size found, try to extract from model name or URL
+  if (!params.size) {
+    const urlSizeMatch = html.match(/\/library\/[^\/]*[-_]([0-9.]+[bB])/i);
+    if (urlSizeMatch) {
+      params.size = urlSizeMatch[1].toLowerCase();
+    } else {
+      params.size = 'varies'; // Better than "0b"
+    }
   }
 
   const familyMatch = html.match(/family["']?\s*:\s*["']?([^"',\s}]+)/i);
