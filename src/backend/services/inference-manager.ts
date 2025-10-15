@@ -371,6 +371,7 @@ class InferenceManager {
         messages: messages,
         temperature: 0.7,
         max_tokens: 2048,
+        stream: false,
       });
 
       const responseContent = chatResponse.choices[0]?.message?.content;

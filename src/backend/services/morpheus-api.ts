@@ -236,6 +236,7 @@ class MorpheusAPIService {
       ],
       temperature: 0.7,
       max_tokens: 2048,
+      stream: false,
     };
 
     let lastError: any;
