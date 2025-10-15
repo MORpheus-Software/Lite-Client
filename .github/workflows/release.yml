@@ -9,6 +9,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
+      fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
 
@@ -23,6 +24,12 @@ jobs:
         with:
           node-version: 18
           
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon-dev libxss1 libasound2-dev libxtst6 libatspi2.0-0 libgtk-3-0
+          
       - name: Install dependencies
         run: yarn install
         
@@ -33,7 +40,12 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: yarn make
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" yarn make
+          else
+            yarn make
+          fi
         
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -43,6 +55,7 @@ jobs:
 
   create-release:
     needs: release
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
