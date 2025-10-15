@@ -371,10 +371,12 @@ export const getAvailableModelsFromRegistry = async (
     const parsedModels = parseOllamaSearchPage(html);
     logger.info(`Parsed ${parsedModels.length} models from HTML`);
 
-    // Transform to app format
-    const transformedModels = transformToAppFormat(parsedModels);
+    // Transform to app format with client-side sorting
+    const transformedModels = transformToAppFormat(parsedModels, sortBy, sortOrder);
 
-    logger.info(`Successfully scraped ${transformedModels.length} models from Ollama.com`);
+    logger.info(
+      `Successfully scraped ${transformedModels.length} models from Ollama.com (sorted by: ${sortBy || 'popular'})`,
+    );
     return transformedModels;
   } catch (error) {
     logger.error('CRITICAL: Failed to scrape Ollama.com and no fallback available:', error);

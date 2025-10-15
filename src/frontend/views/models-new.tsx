@@ -107,6 +107,14 @@ const ModelsView: React.FC = () => {
   }, [activeTab]);
 
   const loadTabData = async () => {
+    await loadTabDataWithSort(sortBy, sortOrder);
+  };
+
+  // Helper function to load data with specific sort parameters
+  const loadTabDataWithSort = async (
+    sortByParam: 'popular' | 'newest' | 'downloads' | 'name' | 'updated_at' | 'last_updated',
+    sortOrderParam: 'asc' | 'desc',
+  ) => {
     setLoading(true);
     setConnectionError(null); // Clear previous errors
 
@@ -117,10 +125,11 @@ const ModelsView: React.FC = () => {
         setLocalModels(localResponse.models || []);
 
         // Load community models (NO CACHING - always fresh scraping)
+        console.log(`sortBy="${sortByParam}", sortOrder="${sortOrderParam}"`);
         const communityResponse = await window.backendBridge.ollama.getAvailableModelsFromRegistry(
           searchQuery || undefined,
-          sortBy,
-          sortOrder,
+          sortByParam, // Use parameter directly
+          sortOrderParam, // Use parameter directly
           selectedCategory === 'all' ? undefined : selectedCategory,
         );
         setCommunityModels(communityResponse || []);
@@ -240,14 +249,25 @@ const ModelsView: React.FC = () => {
 
   // Simplified search - no pagination, get all results
   const performSearch = async (query: string) => {
+    await performSearchWithSort(query, sortBy, sortOrder);
+  };
+
+  // Helper function to search with specific sort parameters
+  const performSearchWithSort = async (
+    query: string,
+    sortByParam: 'popular' | 'newest' | 'downloads' | 'name' | 'updated_at' | 'last_updated',
+    sortOrderParam: 'asc' | 'desc',
+  ) => {
     setIsSearching(true);
 
     try {
-      console.log(`🔍 DEBUG: Search query: '${query}', category: '${selectedCategory}' (NO CACHE)`);
+      console.log(
+        `🔍 DEBUG: Search query: '${query}', category: '${selectedCategory}', sort: '${sortByParam}' (${sortOrderParam}) (NO CACHE)`,
+      );
       const response = await window.backendBridge.ollama.getAvailableModelsFromRegistry(
         query || undefined,
-        sortBy,
-        sortOrder,
+        sortByParam, // Use parameter directly
+        sortOrderParam, // Use parameter directly
         selectedCategory === 'all' ? undefined : selectedCategory,
       );
 
@@ -293,16 +313,28 @@ const ModelsView: React.FC = () => {
 
   // Handle sort change
   const handleSortChange = async (newSortBy: string) => {
+    console.log(`Sort changed to "${newSortBy}" (order: ${sortOrder})`);
     setSortBy(
       newSortBy as 'popular' | 'newest' | 'downloads' | 'name' | 'updated_at' | 'last_updated',
     );
     setConnectionError(null); // Clear errors when user tries new sort
+
+    // Use the NEW sortBy value directly instead of relying on state
+    const typedSortBy = newSortBy as
+      | 'popular'
+      | 'newest'
+      | 'downloads'
+      | 'name'
+      | 'updated_at'
+      | 'last_updated';
     if (searchQuery.trim()) {
       // Re-search with new sort
-      await performSearch(searchQuery);
+      console.log(`sort by "${newSortBy}" (order: ${sortOrder})`);
+      await performSearchWithSort(searchQuery, typedSortBy, sortOrder);
     } else {
-      // Reload data
-      await loadTabData();
+      // Reload data with new sort
+      console.log(`sort order "${newSortBy}"`);
+      await loadTabDataWithSort(typedSortBy, sortOrder);
     }
   };
 
@@ -323,12 +355,14 @@ const ModelsView: React.FC = () => {
   const handleSortOrderToggle = async () => {
     const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
     setSortOrder(newOrder);
+
+    // Use the NEW sortOrder value directly instead of relying on state
     if (searchQuery.trim()) {
       // Re-search with new sort order
-      await performSearch(searchQuery);
+      await performSearchWithSort(searchQuery, sortBy, newOrder);
     } else {
-      // Reload data (no sort controls when not searching, so this won't be called)
-      await loadTabData();
+      // Reload data with new sort order
+      await loadTabDataWithSort(sortBy, newOrder);
     }
   };
 
@@ -587,11 +621,11 @@ const LocalTabContent: React.FC<{
                 }
               >
                 <option value="all">All Models</option>
-                <option value="cloud">☁️ Cloud</option>
-                <option value="embedding">🔗 Embedding</option>
-                <option value="vision">👁️ Vision</option>
-                <option value="tools">🛠️ Tools</option>
-                <option value="thinking">🧠 Thinking</option>
+                <option value="cloud">Cloud</option>
+                <option value="embedding">Embedding</option>
+                <option value="vision">Vision</option>
+                <option value="tools">Tools</option>
+                <option value="thinking">Thinking</option>
               </CategorySelect>
             </FilterControls>
 

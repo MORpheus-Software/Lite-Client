@@ -312,12 +312,18 @@ export function validateModelData(model: ParsedOllamaModel): ValidationResult {
 }
 
 /**
- * Transform parsed model data to match the existing app format
+ * Transform parsed model data to match the existing app format with client-side sorting
  * @param models - Array of parsed models
- * @returns Array of models in the expected format
+ * @param sortBy - Sort criteria
+ * @param sortOrder - Sort direction (asc/desc)
+ * @returns Array of models in the expected format, sorted
  */
-export function transformToAppFormat(models: ParsedOllamaModel[]): any[] {
-  return models.map((model) => ({
+export function transformToAppFormat(
+  models: ParsedOllamaModel[],
+  sortBy?: string,
+  sortOrder?: string,
+): any[] {
+  const transformed = models.map((model) => ({
     name: model.name,
     description: model.description,
     modifiedAt: model.modifiedAt,
@@ -332,4 +338,46 @@ export function transformToAppFormat(models: ParsedOllamaModel[]): any[] {
     sizes: model.sizes,
     lastUpdated: model.lastUpdated,
   }));
+
+  // Add client-side sorting with debugging
+  if (sortBy && sortBy !== 'popular') {
+    logger.info(`Applying client-side sorting: ${sortBy} (${sortOrder})`);
+
+    transformed.sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortBy) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          logger.debug(`Name comparison: "${a.name}" vs "${b.name}" = ${comparison}`);
+          break;
+        case 'downloads':
+        case 'pulls':
+          comparison = (b.pullCountNumeric || 0) - (a.pullCountNumeric || 0);
+          break;
+        case 'updated_at':
+        case 'last_updated':
+        case 'newest':
+          comparison = new Date(b.modifiedAt).getTime() - new Date(a.modifiedAt).getTime();
+          break;
+        default:
+          logger.warn(`Unknown sort option: ${sortBy}`);
+          return 0;
+      }
+
+      const result = sortOrder === 'asc' ? comparison : -comparison;
+      return result;
+    });
+
+    logger.info(
+      `Sorting complete - first 3 models: ${transformed
+        .slice(0, 3)
+        .map((m) => m.name)
+        .join(', ')}`,
+    );
+  } else {
+    logger.info(`No client-side sorting applied (sortBy: ${sortBy})`);
+  }
+
+  return transformed;
 }
