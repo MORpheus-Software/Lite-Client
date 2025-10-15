@@ -302,8 +302,13 @@ export const stopOllama = async () => {
   ollamaProcess = null;
 };
 
-// Fetch models from Ollama registry - always fresh data, no caching
-export const getAvailableModelsFromRegistry = async (
+// ============================================================================
+// MODEL REGISTRY FUNCTIONS
+// ============================================================================
+
+// BACKUP: Original ollamadb.dev implementation (kept for fallback)
+// This function uses the third-party ollamadb.dev API
+export const getAvailableModelsFromRegistryLegacy = async (
   searchQuery?: string,
   sortBy?: 'name' | 'downloads' | 'pulls' | 'updated_at' | 'last_updated' | 'created_at',
   sortOrder?: 'asc' | 'desc',
@@ -364,6 +369,19 @@ export const getAvailableModelsFromRegistry = async (
     : [];
 
   return models;
+};
+
+// NEW IMPLEMENTATION: Fetch models from official Ollama search page
+// This function scrapes https://ollama.com/search for official model data
+export const getAvailableModelsFromRegistry = async (
+  searchQuery?: string,
+  sortBy?: 'name' | 'downloads' | 'pulls' | 'updated_at' | 'last_updated' | 'created_at',
+  sortOrder?: 'asc' | 'desc',
+) => {
+  // TODO: Implement official Ollama.com scraping
+  // For now, fallback to legacy implementation
+  logger.info('Using legacy ollamadb.dev API - official scraping not yet implemented');
+  return getAvailableModelsFromRegistryLegacy(searchQuery, sortBy, sortOrder);
 };
 
 // No cache functions needed - models are always fetched fresh
