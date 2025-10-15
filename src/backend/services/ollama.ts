@@ -658,10 +658,33 @@ function extractExamples(html: string): string[] {
 function extractParameters(html: string): Record<string, string> {
   const params: Record<string, string> = {};
 
-  // Look for parameter information
-  const sizeMatch = html.match(/([0-9.]+[BMG])/i);
-  if (sizeMatch) {
-    params.size = sizeMatch[1];
+  // Enhanced size extraction patterns for individual model pages
+  const sizePatterns = [
+    /([0-9.]+[bB])\s*parameters?/i, // "7b parameters"
+    /([0-9.]+[bB])\s*param/i, // "7b param"
+    /([0-9.]+[bB])\s*model/i, // "7b model"
+    /([0-9.]+[bB])\s*size/i, // "7b size"
+    /size[^>]*>([0-9.]+[bB])/i, // HTML size tags
+    /([0-9.]+[bB])(?:\s|<|$)/i, // Just "7b" followed by space/tag/end
+    /([0-9.]+[BMG])/i, // Original pattern as fallback
+  ];
+
+  for (const pattern of sizePatterns) {
+    const match = html.match(pattern);
+    if (match) {
+      params.size = match[1].toLowerCase();
+      break;
+    }
+  }
+
+  // If no size found, try to extract from model name or URL
+  if (!params.size) {
+    const urlSizeMatch = html.match(/\/library\/[^\/]*[-_]([0-9.]+[bB])/i);
+    if (urlSizeMatch) {
+      params.size = urlSizeMatch[1].toLowerCase();
+    } else {
+      params.size = 'varies'; // Better than "0b"
+    }
   }
 
   const familyMatch = html.match(/family["']?\s*:\s*["']?([^"',\s}]+)/i);

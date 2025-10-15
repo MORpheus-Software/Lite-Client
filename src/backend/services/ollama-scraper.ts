@@ -293,9 +293,13 @@ export function validateModelData(model: ParsedOllamaModel): ValidationResult {
     errors.push('Model name contains invalid characters');
   }
 
-  // Size format validation
+  // Size format validation - allow complex formats like 8x7b, 16x17b, e2b
   if (model.sizes.length > 0) {
-    const invalidSizes = model.sizes.filter((size) => !/^\d+(?:\.\d+)?[bkmgtBKMGT]?$/.test(size));
+    const invalidSizes = model.sizes.filter(
+      (size) =>
+        // Allow formats: 7b, 13B, 3.5b, 8x7b, 16x17b, e2b, etc.
+        !/^(?:\d+(?:\.\d+)?(?:x\d+(?:\.\d+)?)?|[a-zA-Z]\d+)[bkmgtBKMGTE]?$/i.test(size),
+    );
     if (invalidSizes.length > 0) {
       errors.push(`Invalid size formats: ${invalidSizes.join(', ')}`);
     }
