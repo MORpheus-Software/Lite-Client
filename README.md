@@ -1,70 +1,197 @@
 
-Morhpheus Node Setup
+# Morpheus Lite Client
 
+> **Private, Sovereign AI** - Chat with AI models locally without compromising your privacy
 
+![Morpheus](src/frontend/assets/images/logo.png)
 
-Windows OS Systems
+## Overview
 
-Prerequisites
+Morpheus is a cross-platform desktop application that provides private AI conversations using local models via Ollama, with optional cloud inference through the Morpheus API. Built with Electron, React, and TypeScript.
 
-Node.js for Windows
-    Follow the instructions listed here for Node.js setup:
-        • https://phoenixnap.com/kb/install-node-js-npm-on-windows
+**Current Version:** `0.7.4-daily.6`
 
-Yarn for Windows 
-    Follow the instructions listed here for Yarn Package Manager setup:
-          •	https://phoenixnap.com/kb/yarn-windows
+## What Makes Morpheus Different
 
-1. Create Project Directory
-Open a Windows command prompt and create a project folder and put your command line at that directory
-  
-I.e. Presume the starting directory is: C:\projects
+- 🔐 **Privacy First** - Your conversations never leave your device (local mode)
+- 🏠 **Self-Hosted AI** - Run models locally with Ollama integration
+- 🌐 **Hybrid Inference** - Choose between local privacy or cloud performance
+- 💳 **Web3 Ready** - MetaMask integration for blockchain interactions
+- 🎯 **Zero Setup** - Automatic Ollama detection and model management
 
-		mkdir c:\projects
+## Installation
 
-		cd /d c:\projects
-   
-2. Morpheus client Workspace Setup
-    From a command line at the project directory (created in #1), type:
+### Download Pre-built Binaries
 
-          git clone https://github.com/MorpheusAIs/Lite-Client.git
+| Platform | Download |
+|----------|----------|
+| Windows | `morpheus-{version}-win32-x64.exe` |
+| macOS (Apple Silicon) | `morpheus-{version}-arm64.dmg` |
+| macOS (Intel) | `morpheus-{version}-x64.dmg` |
+| Linux | `morpheus-{version}-linux-x64.deb` |
 
-3. Project Environment Setup
-    Set up the modules and components using the Yarn Package Manager
+📥 **[Get Latest Release](https://github.com/MORpheus-Software/Lite-Client/releases)**
 
-    Navigate to the command line of the Morpheus client local repository, then type the following command:
-   
-        yarn
+### Build from Source
 
-    This will set up all node modules needed.
+```bash
+# Clone repository
+git clone https://github.com/MORpheus-Software/Lite-Client.git
+cd Lite-Client
 
-4. Build the Morpheus Client App
-    From a command line at the root directory of the local Morpheus Client repo, build the client executable, type:
+# Install dependencies (requires Node.js 16+ and Yarn)
+yarn install
 
-   		yarn make
+# Development
+yarn start
 
+# Build for production
+yarn build
+```
 
-6. Application Runtime and Testing
-    Upon successful build, run the Morpheus client app by clicking the following executable or start from the command line:
+## Quick Start Guide
 
-        <PATH-TO-LOCAL-MORPHEUS-CLIENT-REPO>\Lite-Client-main\out\morpheus-win32-x64.exe
+1. **Launch Morpheus** - The app auto-detects Ollama installation
+2. **Browse Models** - Go to Models tab to download AI models
+3. **Create Chat** - Start a new conversation in local or remote mode
+4. **Connect Wallet** (Optional) - Link MetaMask for blockchain features
 
+## Core Features
 
+### AI Chat Interface
+- Multiple conversation management
+- Message history persistence
+- Real-time streaming responses
+- Model switching per conversation
 
-NOTES
+### Model Management
+- Browse and download models from Ollama registry
+- Monitor disk space and model sizes
+- Filter by tags and categories
+- One-click model installation
 
-•	Additional Run, Test, and Build scripts are located in the package.json configuration file in the root directory of the Morpheus client repo
+### Inference Modes
 
-•	Please visit https://mor.software/ to sign up as a developer to be rewarded for your merged contributions. Submit an MRC to get support for feature and improvement ideas.
+| Mode | Description | Privacy | Performance |
+|------|-------------|---------|-------------|
+| **Local** | Ollama models on your machine | 🟢 Complete | Depends on hardware |
+| **Remote** | Morpheus API cloud inference | 🟡 API calls logged | 🟢 High performance |
 
-•	https://mor.software/ is also the place to build, submit, deploy, and manage all of your Smart Agents.
+### Blockchain Integration
+- MetaMask wallet connection
+- ETH balance checking
+- Transaction execution via chat
+- Address validation and formatting
 
-•	Be sure to complete these steps from an account with administrative access to the host machine
+## Architecture
 
-•	The initial start of the application may take extended time to start due to the initial configuration and run of the application
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   React Frontend │◄──►│  Electron Main   │◄──►│   Ollama API    │
+│   (Renderer)     │    │   (IPC Bridge)   │    │   (Local AI)    │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+         │                       │                       
+         ▼                       ▼                       
+┌─────────────────┐    ┌──────────────────┐              
+│  MetaMask SDK   │    │  Morpheus API    │              
+│  (Web3)         │    │  (Remote AI)     │              
+└─────────────────┘    └──────────────────┘              
+```
 
+**Tech Stack:**
+- **Frontend:** React 19, TypeScript, Styled Components
+- **Backend:** Electron, Node.js, IPC communication
+- **AI:** Ollama (local), Morpheus API (remote)
+- **Web3:** MetaMask SDK, Ethers.js
+- **Build:** Electron Forge, Webpack
 
+## Configuration
 
-### Windows installer instructions (Doc format)
-[Google Doc](https://docs.google.com/document/d/1YjGAlTzglct8aNEqZAUeYD7SAmOETtmv/edit?usp=sharing&ouid=118042204753952761929&rtpof=true&sd=true)
+### Environment Setup
+```bash
+# Required for development
+export NODE_ENV=development
+export DEBUG=electron-packager
 
+# Optional: Apple Developer credentials for macOS signing
+export APPLE_DEVELOPER_ID="Developer ID Application: ..."
+export APPLE_ID="your-apple-id@example.com"
+export APPLE_ID_PASSWORD="app-specific-password"
+export APPLE_TEAM_ID="YOUR_TEAM_ID"
+```
+
+### Settings
+- **Models Path:** Configure where Ollama models are stored
+- **API Configuration:** Set Morpheus API endpoint and credentials
+- **Performance:** Adjust memory and processing preferences
+
+## Development
+
+### Project Structure
+```
+src/
+├── backend/           # Electron main process
+│   ├── services/      # AI, wallet, and system services
+│   └── handlers.ts    # IPC request handlers
+├── frontend/          # React application
+│   ├── components/    # UI components
+│   ├── views/         # Main application views
+│   └── utils/         # Utilities and helpers
+└── events.ts          # IPC channel definitions
+```
+
+### Available Scripts
+```bash
+yarn start             # Development mode
+yarn package           # Package for current platform
+yarn make              # Build for all platforms
+yarn lint              # Run ESLint
+yarn pretty            # Format code with Prettier
+```
+
+### Release Process
+```bash
+# GitHub releases (uses existing signed artifacts)
+./release-github.sh daily    # Pre-release build
+./release-github.sh patch    # Patch version
+./release-github.sh minor    # Minor version
+./release-github.sh major    # Major version
+```
+
+> **Important:** This project publishes exclusively to GitHub releases, never npm
+
+## Contributing
+
+### Getting Started
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Make your changes and test thoroughly
+4. Submit a pull request
+
+### Developer Rewards
+- 🏆 **Join [mor.software](https://mor.software/)** to earn rewards for merged contributions
+- 📝 **Submit MRCs** (Morpheus Request for Comments) for feature proposals
+- 🤖 **Build Smart Agents** on the Morpheus platform
+
+### Code Guidelines
+- TypeScript strict mode enabled
+- Prettier formatting enforced
+- ESLint rules configured
+- Test changes on all supported platforms
+
+## Support & Community
+
+- 🐛 **Issues:** [GitHub Issues](https://github.com/MORpheus-Software/Lite-Client/issues)
+- 💬 **Discussions:** [GitHub Discussions](https://github.com/MORpheus-Software/Lite-Client/discussions)
+- 🌐 **Website:** [mor.software](https://mor.software/)
+- 📚 **Documentation:** [GitHub Wiki](https://github.com/MORpheus-Software/Lite-Client/wiki)
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+---
+
+**Morpheus** - Bringing private, sovereign AI to everyone.
+
+*Built with ❤️ by the Morpheus community*
