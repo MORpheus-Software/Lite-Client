@@ -3,6 +3,8 @@ import styled, { useTheme } from 'styled-components';
 
 // Import types from the backend bridge
 import { RegistryModel } from '../renderer.d';
+import ModelDownloadModal from '../components/modals/model-download-modal';
+import { useDownload } from '../contexts/download-context';
 
 // Types for our models - use the actual backend response types
 interface LocalModel {
@@ -63,6 +65,10 @@ const ModelsView: React.FC = () => {
   const [communityModels, setCommunityModels] = useState<CommunityModel[]>([]);
   const [remoteModels, setRemoteModels] = useState<RemoteModel[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Download context
+  const { currentDownload, isDownloading, startDownload, cancelDownload, clearDownload } =
+    useDownload();
 
   // Model count state (for display only)
   const [totalModels, setTotalModels] = useState(0);
@@ -135,8 +141,13 @@ const ModelsView: React.FC = () => {
 
   const handleDownload = async (modelName: string) => {
     try {
+      // Start download tracking
+      startDownload(modelName);
+
+      // Call the actual download (this triggers the status updates)
       await window.backendBridge.ollama.getModel(modelName);
-      // Refresh local models
+
+      // Refresh local models (always fresh, no cache)
       if (activeTab === 'local') {
         loadTabData();
       }
@@ -406,6 +417,18 @@ const ModelsView: React.FC = () => {
           </ModalContent>
         </ModelInfoModal>
       )}
+
+      {/* Download Progress Modal */}
+      <ModelDownloadModal
+        isOpen={isDownloading}
+        onClose={clearDownload}
+        onCancel={cancelDownload}
+        modelName={currentDownload?.modelName || ''}
+        progress={currentDownload?.progress || 0}
+        status={currentDownload?.status || ''}
+        isComplete={currentDownload?.isComplete || false}
+        error={currentDownload?.error}
+      />
     </Container>
   );
 };

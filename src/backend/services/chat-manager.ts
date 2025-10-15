@@ -58,7 +58,7 @@ class ChatManager {
 
     const chat: Chat = {
       id: chatId,
-      title: title || this.generateChatTitle(mode, model),
+      title: title || `${mode === 'local' ? 'Local' : 'Remote'} ${model}`,
       mode,
       model,
       messages: [],
@@ -214,20 +214,6 @@ class ChatManager {
       return true;
     }
     return false;
-  }
-
-  /**
-   * Generate a default chat title based on mode and model
-   */
-  private generateChatTitle(mode: 'local' | 'remote', model: string): string {
-    const timestamp = new Date().toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
-
-    return `${mode === 'local' ? '🏠' : '🌐'} ${model} - ${timestamp}`;
   }
 
   /**

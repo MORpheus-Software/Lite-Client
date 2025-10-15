@@ -1,0 +1,18 @@
+---
+alwaysApply: false
+---
+
+https://www.npmjs.com/package/ollama
+
+# Ollama NPM Package Reference
+
+This document provides a reference for the Ollama JavaScript library available on NPM.
+
+## Package Information
+- **Package Name**: `ollama`
+- **Current Version**: 0.5.17
+- **License**: MIT
+- **Repository**: https://github.com/ollama/ollama-js
+- **Weekly Downloads**: 277,309
+
+## Installation

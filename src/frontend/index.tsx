@@ -11,12 +11,14 @@ import AppInit from './components/layout/app-init';
 // providers
 import ThemeProvider from './theme/theme-provider';
 import { ChatProvider } from './contexts/chat-context';
+import { DownloadProvider } from './contexts/download-context';
 // import { MetaMaskProvider } from '@metamask/sdk-react';
 
 // modals
 // import QrCodeModal from './components/modals/qr-code-modal';
 
 // styles
+import './index.css';
 import GlobalStyle from './theme/index';
 
 // constants
@@ -89,8 +91,10 @@ const AppRoot = () => {
     <React.StrictMode>
       <ThemeProvider>
         <ChatProvider>
-          {!isInitialized && <AppInit />}
-          {isInitialized && <Main />}
+          <DownloadProvider>
+            {!isInitialized && <AppInit />}
+            {isInitialized && <Main />}
+          </DownloadProvider>
         </ChatProvider>
       </ThemeProvider>
     </React.StrictMode>

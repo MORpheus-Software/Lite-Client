@@ -1,7 +1,10 @@
 import React, { ReactNode, createContext, useState } from 'react';
 import { ThemeProvider } from 'styled-components';
+import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
 
 import { darkTheme, lightTheme } from './theme';
+import { muiLightTheme, muiDarkTheme } from './mui-theme';
 
 export const ThemeContext = createContext({
   isDarkTheme: true,
@@ -27,7 +30,10 @@ export default ({ children }: ThemeProviderProps) => {
         toggleTheme,
       }}
     >
-      <ThemeProvider theme={dark ? darkTheme : lightTheme}>{children}</ThemeProvider>
+      <MuiThemeProvider theme={dark ? muiDarkTheme : muiLightTheme}>
+        <CssBaseline />
+        <ThemeProvider theme={dark ? darkTheme : lightTheme}>{children}</ThemeProvider>
+      </MuiThemeProvider>
     </ThemeContext.Provider>
   );
 };

@@ -24,6 +24,7 @@ import {
   getLastUsedLocalModelHandler,
   deleteModelHandler,
   pullAndReplaceModelHandler,
+  cancelDownloadHandler,
 
   // New inference management handlers
   getInferenceModeHandler,
@@ -181,6 +182,7 @@ app.on('ready', async () => {
   ipcMain.handle(OllamaChannel.OllamaGetLastUsedLocalModel, getLastUsedLocalModelHandler);
   ipcMain.handle(OllamaChannel.OllamaDeleteModel, deleteModelHandler);
   ipcMain.handle(OllamaChannel.OllamaPullAndReplaceModel, pullAndReplaceModelHandler);
+  ipcMain.handle(OllamaChannel.OllamaCancelDownload, cancelDownloadHandler);
 
   ipcMain.handle(OllamaChannel.OllamaGetModelInfo, getModelInfoHandler);
   ipcMain.handle(OllamaChannel.OllamaGetLocalModelInfo, getLocalModelInfoHandler);

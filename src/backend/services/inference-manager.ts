@@ -7,13 +7,21 @@ import {
   MorpheusModel,
 } from './morpheus-api';
 import { askOllama, getAllLocalModels, getCurrentModel } from './ollama';
-
 // Storage
 import {
   getInferenceConfigFromStorage,
   saveInferenceConfigToStorage,
   getLastUsedLocalModelFromStorage,
 } from '../storage';
+
+// Helper function for debug logging
+const logToFrontend = (level: 'info' | 'warn' | 'error', message: string, data?: any) => {
+  // Backend logging with clear prefix for remote debugging
+  logger[level](`[REMOTE-DEBUG] ${message}`, data);
+
+  // Also log to backend console for immediate visibility
+  console[level](`[REMOTE-DEBUG] ${message}`, data);
+};
 
 export interface InferenceModel {
   id: string;
@@ -333,7 +341,11 @@ class InferenceManager {
   ): Promise<InferenceResult> {
     const api = getMorpheusAPI();
     if (!api) {
-      logger.warn('Morpheus API not configured, falling back to local mode');
+      const debugInfo = {
+        morpheusConfig: this.morpheusConfig ? 'Config exists' : 'No config',
+        apiKey: this.morpheusConfig?.apiKey ? 'API key present' : 'No API key',
+      };
+      logToFrontend('warn', 'Morpheus API not configured, falling back to local mode', debugInfo);
       return this.askLocal(query, model, conversationHistory);
     }
 
@@ -371,6 +383,7 @@ class InferenceManager {
         messages: messages,
         temperature: 0.7,
         max_tokens: 2048,
+        stream: false,
       });
 
       const responseContent = chatResponse.choices[0]?.message?.content;
@@ -385,7 +398,17 @@ class InferenceManager {
         model: targetModel,
       };
     } catch (error) {
-      logger.error('Remote inference failed:', error);
+      const errorInfo = {
+        error: error.message,
+        stack: error.stack,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        code: error.code,
+        url: error.config?.url,
+        timeout: error.code === 'ECONNABORTED' ? 'Request timed out' : undefined,
+      };
+      logToFrontend('error', 'Remote inference failed', errorInfo);
 
       // Determine if we should fallback based on error type
       const shouldFallback = this.shouldFallbackToLocal(error);
@@ -422,7 +445,10 @@ class InferenceManager {
    * Determine if we should fallback to local mode based on the error
    */
   private shouldFallbackToLocal(error: any): boolean {
-    if (!error) return true;
+    if (!error) {
+      logToFrontend('info', 'Fallback decision: No error object, defaulting to fallback');
+      return true;
+    }
 
     const errorMessage = error.message?.toLowerCase() || '';
     const errorCode = error.response?.status;
@@ -434,11 +460,29 @@ class InferenceManager {
       errorMessage.includes('unauthorized') ||
       errorMessage.includes('api key')
     ) {
+      const authErrorInfo = {
+        errorCode,
+        errorMessage: error.message,
+      };
+      logToFrontend(
+        'info',
+        'Fallback decision: Authentication/authorization error - NOT falling back',
+        authErrorInfo,
+      );
       return false;
     }
 
     // Don't fallback for explicit invalid request errors
     if (errorCode === 400 || errorMessage.includes('bad request')) {
+      const badRequestInfo = {
+        errorCode,
+        errorMessage: error.message,
+      };
+      logToFrontend(
+        'info',
+        'Fallback decision: Bad request error - NOT falling back',
+        badRequestInfo,
+      );
       return false;
     }
 
@@ -449,10 +493,39 @@ class InferenceManager {
       errorMessage.includes('network') ||
       errorMessage.includes('econnrefused')
     ) {
+      const networkErrorInfo = {
+        errorCode,
+        errorMessage: error.message,
+        reason:
+          errorCode >= 500
+            ? 'Server error'
+            : errorMessage.includes('timeout')
+              ? 'Timeout'
+              : errorMessage.includes('network')
+                ? 'Network error'
+                : errorMessage.includes('econnrefused')
+                  ? 'Connection refused'
+                  : 'Unknown network issue',
+      };
+      logToFrontend(
+        'info',
+        'Fallback decision: Network/server error - FALLING BACK',
+        networkErrorInfo,
+      );
       return true;
     }
 
     // Default to fallback for unknown errors
+    const unknownErrorInfo = {
+      errorCode,
+      errorMessage: error.message,
+      errorType: typeof error,
+    };
+    logToFrontend(
+      'info',
+      'Fallback decision: Unknown error type - FALLING BACK (default)',
+      unknownErrorInfo,
+    );
     return true;
   }
 

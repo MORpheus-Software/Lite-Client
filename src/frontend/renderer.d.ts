@@ -70,6 +70,7 @@ export interface BackendBridge {
     getLastUsedLocalModel: () => Promise<string>;
     deleteModel: (modelName: string) => Promise<boolean>;
     pullAndReplaceModel: (modelName: string) => Promise<boolean>;
+    cancelDownload: () => Promise<boolean>;
 
     getModelInfo: (modelUrl: string, modelName: string) => Promise<any>;
     getLocalModelInfo: (modelName: string) => Promise<any>;

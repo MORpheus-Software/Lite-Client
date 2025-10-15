@@ -55,6 +55,8 @@ contextBridge.exposeInMainWorld('backendBridge', {
       ipcRenderer.invoke(OllamaChannel.OllamaDeleteModel, modelName),
     pullAndReplaceModel: (modelName: string) =>
       ipcRenderer.invoke(OllamaChannel.OllamaPullAndReplaceModel, modelName),
+    cancelDownload: () =>
+      ipcRenderer.invoke(OllamaChannel.OllamaCancelDownload) as Promise<boolean>,
 
     getModelInfo: (modelUrl: string, modelName: string) =>
       ipcRenderer.invoke(OllamaChannel.OllamaGetModelInfo, modelUrl, modelName) as Promise<{

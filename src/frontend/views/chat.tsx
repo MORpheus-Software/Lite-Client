@@ -150,13 +150,7 @@ const ChatView = (): React.JSX.Element => {
 
         {currentChat && currentChat.messages.length === 0 && (
           <Chat.WelcomeMessage>
-            <Chat.WelcomeTitle>
-              {currentChat.mode === 'local' ? '🏠' : '🌐'} {currentChat.title}
-            </Chat.WelcomeTitle>
-            <Chat.WelcomeText>
-              {currentChat.mode === 'local' ? 'Private & Local' : 'Cloud Processing'} •{' '}
-              {currentChat.model}
-            </Chat.WelcomeText>
+            <Chat.WelcomeTitle>{currentChat.title}</Chat.WelcomeTitle>
             <Chat.WelcomeHint>How can I help you today?</Chat.WelcomeHint>
           </Chat.WelcomeMessage>
         )}
@@ -176,9 +170,6 @@ const ChatView = (): React.JSX.Element => {
                 <Chat.AIMessage>
                   <Chat.AIHeader>
                     <Chat.SourceIndicator $source={currentChat.mode}>
-                      <Chat.SourceIcon>
-                        {currentChat.mode === 'remote' ? '☁️' : '🏠'}
-                      </Chat.SourceIcon>
                       <Chat.SourceText>
                         {currentChat.mode === 'remote' ? 'Remote' : 'Local'} • {currentChat.model}
                       </Chat.SourceText>
@@ -295,9 +286,6 @@ const Chat = {
       $source === 'remote' ? 'rgba(74, 144, 226, 0.15)' : 'rgba(23, 156, 101, 0.15)'};
     border: 1px solid ${({ $source }) =>
       $source === 'remote' ? 'rgba(74, 144, 226, 0.3)' : 'rgba(23, 156, 101, 0.3)'};
-  `,
-  SourceIcon: Styled.span`
-    font-size: 0.8rem;
   `,
   SourceText: Styled.span`
     color: ${(props) => props.theme.colors.notice};
