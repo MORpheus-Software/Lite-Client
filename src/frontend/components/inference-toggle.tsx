@@ -4,7 +4,7 @@ import Styled from 'styled-components';
 import { MonitorSpeaker, Globe, AlertTriangle } from 'lucide-react';
 
 // types
-import { InferenceMode } from '../renderer';
+import { InferenceMode } from '../renderer.d';
 
 interface InferenceToggleProps {
   currentMode: InferenceMode;

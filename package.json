@@ -1,7 +1,7 @@
 {
   "name": "morpheus",
   "productName": "Morpheus",
-  "version": "0.7.6-daily.1",
+  "version": "0.7.6-daily.2",
   "description": "Morpheus is private, sovereign, AI",
   "main": ".webpack/main",
   "scripts": {
@@ -91,11 +91,9 @@
     "@metamask/sdk-react-ui": "^0.14.3",
     "@mui/icons-material": "^7.3.1",
     "@mui/material": "^7.3.1",
-    "@types/cheerio": "^1.0.0",
     "@types/react": "^19.1.9",
     "axios": "^1.11.0",
     "check-disk-space": "^3.4.0",
-    "cheerio": "^1.1.2",
     "electron-squirrel-startup": "^1.0.0",
     "electron-store": "^8.1.0",
     "ethers": "^6.11.1",

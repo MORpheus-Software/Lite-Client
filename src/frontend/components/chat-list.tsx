@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Styled from 'styled-components';
 import { Plus, Globe, MonitorSpeaker, MoreHorizontal, Trash2, Edit3 } from 'lucide-react';
-import { Chat } from '../renderer';
+import { Chat } from '../renderer.d';
 import ChatCreationModal from './modals/chat-creation-modal';
 
 interface ChatListProps {
@@ -77,7 +77,7 @@ const ChatList: React.FC<ChatListProps> = ({
     }
   };
 
-  const truncateTitle = (title: string, maxLength: number = 40) => {
+  const truncateTitle = (title: string, maxLength = 40) => {
     return title.length > maxLength ? `${title.substring(0, maxLength)}...` : title;
   };
 

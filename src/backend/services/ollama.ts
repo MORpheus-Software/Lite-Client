@@ -725,7 +725,7 @@ function extractParameters(html: string): Record<string, string> {
 
   // If no size found, try to extract from model name or URL
   if (!params.size) {
-    const urlSizeMatch = html.match(/\/library\/[^\/]*[-_]([0-9.]+[bB])/i);
+    const urlSizeMatch = html.match(/\/library\/[^/]*[-_]([0-9.]+[bB])/i);
     if (urlSizeMatch) {
       params.size = urlSizeMatch[1].toLowerCase();
     } else {

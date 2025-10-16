@@ -13,7 +13,7 @@ import MigrationNotification from '../migration-notification';
 import { useChatContext } from '../../contexts/chat-context';
 
 // types
-import { InferenceMode } from '../../renderer';
+import { InferenceMode } from '../../renderer.d';
 
 // router
 import { MainRouter } from '../../router';
