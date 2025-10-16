@@ -313,7 +313,6 @@ const ModelsView: React.FC = () => {
 
   // Handle sort change
   const handleSortChange = async (newSortBy: string) => {
-    console.log(`Sort changed to "${newSortBy}" (order: ${sortOrder})`);
     setSortBy(
       newSortBy as 'popular' | 'newest' | 'downloads' | 'name' | 'updated_at' | 'last_updated',
     );
@@ -329,11 +328,9 @@ const ModelsView: React.FC = () => {
       | 'last_updated';
     if (searchQuery.trim()) {
       // Re-search with new sort
-      console.log(`sort by "${newSortBy}" (order: ${sortOrder})`);
       await performSearchWithSort(searchQuery, typedSortBy, sortOrder);
     } else {
       // Reload data with new sort
-      console.log(`sort order "${newSortBy}"`);
       await loadTabDataWithSort(typedSortBy, sortOrder);
     }
   };

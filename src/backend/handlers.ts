@@ -177,9 +177,39 @@ export const getDiskSpaceInfoHandler = async () => {
 
 export const getCurrentModelHandler = async () => {
   try {
-    return await getCurrentModel();
+    const currentModel = await getCurrentModel();
+
+    // If getCurrentModel returns null, provide fallback logic
+    if (!currentModel) {
+      logger.debug('No current model found, checking for last used model');
+      const lastUsedModel = getLastUsedLocalModelFromStorage();
+      if (lastUsedModel) {
+        return {
+          name: lastUsedModel,
+          status: 'ready',
+        };
+      }
+      return null;
+    }
+
+    return currentModel;
   } catch (error) {
     logger.error('Error getting current model:', error);
+
+    // Fallback to last used model on error
+    try {
+      const lastUsedModel = getLastUsedLocalModelFromStorage();
+      if (lastUsedModel) {
+        logger.debug('Falling back to last used model due to error');
+        return {
+          name: lastUsedModel,
+          status: 'ready',
+        };
+      }
+    } catch (fallbackError) {
+      logger.error('Error in fallback logic:', fallbackError);
+    }
+
     throw error;
   }
 };
@@ -214,9 +244,24 @@ export const deleteModelHandler = async (_: any, modelName: string) => {
 
 export const pullAndReplaceModelHandler = async (_: any, modelName: string) => {
   try {
+    // Validate model name
+    if (!modelName || typeof modelName !== 'string' || modelName.trim() === '') {
+      logger.error('Invalid model name provided for replace operation:', modelName);
+      return false;
+    }
+
+    logger.info(`Starting pull and replace operation for model: ${modelName}`);
     const success = await pullAndReplaceModel(modelName);
+
+    if (success) {
+      logger.info(`Successfully completed pull and replace for model: ${modelName}`);
+    } else {
+      logger.error(`Pull and replace operation failed for model: ${modelName}`);
+    }
+
     return success;
   } catch (err) {
+    logger.error(`Pull and replace handler error for model ${modelName}:`, err);
     handleError(err);
     return false;
   }

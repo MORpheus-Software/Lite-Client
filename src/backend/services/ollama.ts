@@ -20,7 +20,11 @@ import {
 } from './system';
 
 // storage
-import { getModelPathFromStorage } from '../storage';
+import {
+  getModelPathFromStorage,
+  saveLastUsedLocalModelToStorage,
+  getLastUsedLocalModelFromStorage,
+} from '../storage';
 import { logger } from './logger';
 
 // constants
@@ -458,7 +462,22 @@ export const getCurrentModel = async () => {
     const response = await fetch(`${DEFAULT_OLLAMA_URL}api/ps`);
 
     if (!response.ok) {
-      logger.warn(`Failed to fetch running models: ${response.status}`);
+      // Reduce console spam by using debug level for 404s (Ollama not running)
+      if (response.status === 404) {
+        logger.debug(`Ollama not running or /api/ps endpoint unavailable: ${response.status}`);
+      } else {
+        logger.warn(`Failed to fetch running models: ${response.status}`);
+      }
+
+      // Fallback to last used model when Ollama API is unavailable
+      const lastUsedModel = getLastUsedLocalModelFromStorage();
+      if (lastUsedModel) {
+        return {
+          name: lastUsedModel,
+          status: 'ready', // Indicate it's ready but not necessarily loaded
+        };
+      }
+
       return null;
     }
 
@@ -466,12 +485,35 @@ export const getCurrentModel = async () => {
 
     // Return the first running model if any exist
     if (data.models && data.models.length > 0) {
-      return data.models[0];
+      return {
+        ...data.models[0],
+        status: 'loaded', // Indicate it's actually loaded in memory
+      };
+    }
+
+    // No models currently loaded, but Ollama is running
+    // Fallback to last used model
+    const lastUsedModel = getLastUsedLocalModelFromStorage();
+    if (lastUsedModel) {
+      return {
+        name: lastUsedModel,
+        status: 'ready',
+      };
     }
 
     return null;
   } catch (err) {
-    logger.error('Failed to get current model:', err);
+    logger.debug('Failed to get current model (network error):', err);
+
+    // Fallback to last used model on network errors
+    const lastUsedModel = getLastUsedLocalModelFromStorage();
+    if (lastUsedModel) {
+      return {
+        name: lastUsedModel,
+        status: 'ready',
+      };
+    }
+
     return null;
   }
 };
@@ -494,9 +536,11 @@ export const pullAndReplaceModel = async (newModelName: string) => {
     // First, pull the new model
     await installModelWithStatus(newModelName);
 
-    // Then replace the current model
-    const success = await window.backendBridge.ollama.pullAndReplaceModel(newModelName);
-    return success;
+    // Then set it as the default/last used model (replace functionality)
+    saveLastUsedLocalModelToStorage(newModelName);
+    logger.info(`Successfully pulled and set ${newModelName} as default model`);
+
+    return true;
   } catch (error) {
     logger.error('Failed to pull and replace model:', error);
     return false;

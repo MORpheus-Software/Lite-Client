@@ -35,34 +35,33 @@ export default () => {
     loadCurrentModel();
   }, []); // Initial load
 
-  // Update model when current chat changes
+  // Update model when current chat changes (including when it becomes null)
   useEffect(() => {
-    if (currentChat) {
-      loadCurrentModel();
-    }
+    loadCurrentModel();
   }, [currentChat]);
 
   const loadCurrentModel = async () => {
     try {
-      // First try to get the "current" model (actually loaded model)
-      const currentModel = await window.backendBridge.ollama.getCurrentModel();
-      console.log('Current model:', currentModel);
+      // Show the current chat's model if a chat is active
+      if (currentChat) {
+        const chatModel = currentChat.model;
+        const chatMode = currentChat.mode;
+        setCurrentModel(`${chatModel} (${chatMode})`);
+        console.log('Displaying chat model:', chatModel, 'mode:', chatMode);
+        return;
+      }
 
-      if (currentModel?.name) {
-        setCurrentModel(currentModel.name);
-      } else {
-        // If no current model, show the last used model or default
-        try {
-          const lastUsedModel = await window.backendBridge.ollama.getLastUsedLocalModel();
-          if (lastUsedModel) {
-            setCurrentModel(`${lastUsedModel} (ready)`);
-          } else {
-            setCurrentModel('orca-mini:latest (ready)');
-          }
-        } catch (error) {
-          console.warn('Could not get last used model:', error);
-          setCurrentModel('orca-mini:latest (ready)');
+      // No active chat - show fallback information
+      try {
+        const lastUsedModel = await window.backendBridge.ollama.getLastUsedLocalModel();
+        if (lastUsedModel) {
+          setCurrentModel(`${lastUsedModel} (ready)`);
+        } else {
+          setCurrentModel('No active chat');
         }
+      } catch (error) {
+        console.warn('Could not get last used model:', error);
+        setCurrentModel('No active chat');
       }
     } catch (error) {
       console.error('Failed to load current model:', error);
