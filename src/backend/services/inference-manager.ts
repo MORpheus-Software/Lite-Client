@@ -40,7 +40,7 @@ export interface InferenceResult {
 class InferenceManager {
   private currentMode: InferenceMode = 'local';
   private morpheusConfig: MorpheusAPIConfig | null = null;
-  private isInitialized: boolean = false;
+  private isInitialized = false;
 
   constructor() {
     // Initialization will happen when first accessed

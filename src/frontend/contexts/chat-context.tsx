@@ -6,7 +6,7 @@ import React, {
   useCallback,
   PropsWithChildren,
 } from 'react';
-import { Chat, ChatMessage } from '../renderer';
+import { Chat, ChatMessage } from '../renderer.d';
 import { AIMessage } from '../types';
 
 interface ChatContextType {

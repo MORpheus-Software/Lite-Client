@@ -12,7 +12,7 @@ import {
 import { CheckCircle as CheckCircleIcon, Error as ErrorIcon } from '@mui/icons-material';
 
 // Types
-import { InferenceMode, MorpheusAPIConfig } from '../renderer';
+import { InferenceMode, MorpheusAPIConfig } from '../renderer.d';
 
 const SettingsView = (): React.JSX.Element => {
   const [ollamaPath, setOllamaPath] = useState<string>('');

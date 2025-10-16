@@ -6,7 +6,7 @@ import { ThreeDots } from 'react-loader-spinner';
 import { useParams, useNavigate } from 'react-router-dom';
 
 // types and helpers
-import { Chat, ChatMessage } from '../renderer';
+import { Chat, ChatMessage } from '../renderer.d';
 import { useChatContext } from '../contexts/chat-context';
 
 import {

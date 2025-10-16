@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Styled from 'styled-components';
 import { Globe, MonitorSpeaker, X } from 'lucide-react';
-import { InferenceMode } from '../../renderer';
+import { InferenceMode } from '../../renderer.d';
 
 interface ChatCreationModalProps {
   isOpen: boolean;

@@ -269,7 +269,7 @@ class MorpheusAPIService {
   /**
    * Simple question/answer interface with retry logic
    */
-  async ask(query: string, model: string = 'llama-3.3-70b', retries: number = 2): Promise<string> {
+  async ask(query: string, model = 'llama-3.3-70b', retries = 2): Promise<string> {
     const request: MorpheusChatRequest = {
       model,
       messages: [
